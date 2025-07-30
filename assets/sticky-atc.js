@@ -1240,7 +1240,7 @@ if (!customElements.get('sticky-atc')) {
       console.log('productFormActions', this.productFormActions);
       this.container = this.closest('.prod__sticky-atc');
       console.log('sticky atc container', this.container);
-      this.errorWrapper = this.querySelector('.sticky-atc-error');
+      this.errorWrapper = this.container?.querySelector('.sticky-atc-error');
       if (!this.errorWrapper) {
         console.warn('sticky-atc-error container not found');
       }
