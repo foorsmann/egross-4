@@ -321,9 +321,9 @@
           {{ 'products.product.quantity' | t }}
         </label>
       {% endif %}
-      <div class="flex flex-wrap items-end">
+      <div class="flex flex-wrap items-end{% unless block.settings.show_double_qty_btn %} gap-2{% endunless %}">
         {% if block.settings.show_quantity_selector %}
-          <div class="form__input-wrapper form__input-wrapper--select mr-5 w-32" data-quantity-input-wrapper>
+          <div class="form__input-wrapper form__input-wrapper--select{% if block.settings.show_double_qty_btn %} mr-5 w-32{% else %} flex-1{% endif %}" data-quantity-input-wrapper>
             {% render 'product-qty-input', product_form_id: product_form_id, show_double_qty_btn: block.settings.show_double_qty_btn %}
           </div>
                       {% endif %}
@@ -333,8 +333,12 @@
                           if show_dynamic_checkout
                           assign btn_class = 'sf__btn-secondary'
                           endif
+                          assign atc_class = btn_class
+                          unless block.settings.show_double_qty_btn
+                            assign atc_class = atc_class | append: ' flex-1'
+                          endunless
                         %}
-                        {% render 'product-atc', class: btn_class, product: product %}
+                        {% render 'product-atc', class: atc_class, product: product %}
                         {% if section.settings.show_atwl and section.settings.layout == 'layout-7' %}
                           <div class="ml-2 hidden md:block">{% render 'tooltip', type: 'wishlist', class_name: 'sf__tooltip-top' %}</div>
                         {% endif %}
