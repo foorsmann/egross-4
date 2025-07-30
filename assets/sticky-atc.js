@@ -1350,11 +1350,16 @@ if (!customElements.get('sticky-atc')) {
             console.log('ATC response body', body);
             if (statusCode >= 400 || body.status) {
               let msg = body.description || body.message;
-              if (!msg && body.errors) {
-                if (typeof body.errors === 'string') msg = body.errors;
-                else if (Array.isArray(body.errors)) msg = body.errors[0];
-                else if (body.errors.base) msg = body.errors.base[0];
+              const errData = body.errors;
+              if (!msg && errData) {
+                if (typeof errData === 'string') msg = errData;
+                else if (Array.isArray(errData)) msg = errData[0];
+                else if (typeof errData === 'object') {
+                  const key = Object.keys(errData)[0];
+                  msg = Array.isArray(errData[key]) ? errData[key][0] : errData[key];
+                }
               }
+              console.log('resolved atc error msg', msg);
               this.stickyError?.show(msg);
             } else {
               window.ConceptSGMEvents.emit('ON_ITEM_ADDED', body);
