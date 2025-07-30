@@ -21,7 +21,7 @@
     endfor
   endif
 -%}
-<script src="{{ 'sticky-atc.min.js' | asset_url }}" defer="defer"></script>
+<script src="{{ 'sticky-atc.js' | asset_url }}" defer="defer"></script>
 <div
   class="prod__sticky-atc {{ class }} sf-prod__block fixed z-40 bottom-0 inset-x-0 transition-transform translate-y-full{% if enable_dynamic_checkout %} enable-dynamic-checkout{% endif %}"
   data-show-on-desktop="{{ st.use_sticky_atc }}"
