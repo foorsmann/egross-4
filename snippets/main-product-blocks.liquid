@@ -301,6 +301,14 @@
                 unless section.settings.show_featured_media
                   assign selected_variant_id = product.selected_variant.id
                 endunless
+
+                assign min_qty = product.metafields.custom.minimum_quantity | default: 1 | plus: 0
+                assign has_double_qty_btn = false
+                if block.settings.show_double_qty_btn
+                  if min_qty > 1 or request.design_mode
+                    assign has_double_qty_btn = true
+                  endif
+                endif
               %}
 <product-form class="f-product-form" data-product-id="{{ product.id }}">
   {%- form 'product', product,
@@ -321,9 +329,9 @@
           {{ 'products.product.quantity' | t }}
         </label>
       {% endif %}
-      <div class="flex flex-wrap items-end">
+      <div class="flex flex-wrap items-end{% unless has_double_qty_btn %} gap-2{% endunless %}">
         {% if block.settings.show_quantity_selector %}
-          <div class="form__input-wrapper form__input-wrapper--select mr-5 w-32" data-quantity-input-wrapper>
+          <div class="form__input-wrapper form__input-wrapper--select{% if has_double_qty_btn %} mr-5 w-32{% else %} flex-1{% endif %}" data-quantity-input-wrapper>
             {% render 'product-qty-input', product_form_id: product_form_id, show_double_qty_btn: block.settings.show_double_qty_btn %}
           </div>
                       {% endif %}
@@ -333,8 +341,12 @@
                           if show_dynamic_checkout
                           assign btn_class = 'sf__btn-secondary'
                           endif
+                          assign atc_class = btn_class
+                          unless has_double_qty_btn
+                            assign atc_class = atc_class | append: ' flex-1'
+                          endunless
                         %}
-                        {% render 'product-atc', class: btn_class, product: product %}
+                        {% render 'product-atc', class: atc_class, product: product %}
                         {% if section.settings.show_atwl and section.settings.layout == 'layout-7' %}
                           <div class="ml-2 hidden md:block">{% render 'tooltip', type: 'wishlist', class_name: 'sf__tooltip-top' %}</div>
                         {% endif %}
