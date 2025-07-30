@@ -1314,18 +1314,24 @@ if (!customElements.get('sticky-atc')) {
       };
       const { ConceptSGMSettings } = window;
       if (ConceptSGMSettings.use_ajax_atc) {
-        fetch(`${ConceptSGMSettings.routes.cart_add_url}`, config).then(r => {
-          console.log('ATC response status', r.status);
-          return r.json();
-        }).then(res => {
-          console.log('ATC response body', res);
-          if (res.status) {
-            this.stickyError?.show(res.description);
-          } else {
-            window.ConceptSGMEvents.emit('ON_ITEM_ADDED', res);
-            window.Shopify.onItemAdded(res);
-          }
-        }).catch(err => console.error('ATC fetch error', err));
+        fetch(`${ConceptSGMSettings.routes.cart_add_url}`, config)
+          .then(r => {
+            console.log('ATC response status', r.status);
+            return r.json().then(body => ({ statusCode: r.status, body }));
+          })
+          .then(({ statusCode, body }) => {
+            console.log('ATC response body', body);
+            if (statusCode >= 400 || body.status) {
+              this.stickyError?.show(body.description || body.message);
+            } else {
+              window.ConceptSGMEvents.emit('ON_ITEM_ADDED', body);
+              window.Shopify.onItemAdded(body);
+            }
+          })
+          .catch(err => {
+            console.error('ATC fetch error', err);
+            this.stickyError?.show(window.ConceptSGMStrings.cartError || 'Error');
+          });
       } else {
         this.form.submit();
       }
@@ -1368,4 +1374,5 @@ class StickyATCError {
   }
 }
 window.StickyATCError = StickyATCError;
+console.log('sticky-atc script loaded');
 ;
