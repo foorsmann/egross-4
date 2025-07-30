@@ -1342,14 +1342,27 @@ if (!customElements.get('sticky-atc')) {
       const { ConceptSGMSettings } = window;
       if (ConceptSGMSettings.use_ajax_atc) {
         fetch(`${ConceptSGMSettings.routes.cart_add_url}`, config)
-          .then(r => {
+          .then(async r => {
             console.log('ATC response status', r.status);
-            return r.json().then(body => ({ statusCode: r.status, body }));
+            let body;
+            try {
+              const ct = r.headers.get('content-type');
+              if (ct && ct.includes('application/json')) {
+                body = await r.json();
+              } else {
+                const text = await r.text();
+                body = { message: text };
+              }
+            } catch (parseErr) {
+              console.warn('ATC parse error', parseErr);
+              body = {};
+            }
+            return { statusCode: r.status, statusText: r.statusText, body };
           })
-          .then(({ statusCode, body }) => {
+          .then(({ statusCode, statusText, body }) => {
             console.log('ATC response body', body);
             if (statusCode >= 400 || body.status) {
-              let msg = body.description || body.message;
+              let msg = body.description || body.message || statusText;
               const errData = body.errors;
               if (!msg && errData) {
                 if (typeof errData === 'string') msg = errData;
@@ -1368,7 +1381,8 @@ if (!customElements.get('sticky-atc')) {
           })
           .catch(err => {
             console.error('ATC fetch error', err);
-            this.stickyError?.show(window.ConceptSGMStrings.cartError || 'Error');
+            const msg = window.ConceptSGMStrings.cartError || err.message || 'Error';
+            this.stickyError?.show(msg);
           });
       } else {
         this.form.submit();
