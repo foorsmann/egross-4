@@ -2,3 +2,7 @@
 .prod__option-label__quantity {
   display: block;
 }
+
+.form__input-wrapper--select.flex-1 {
+  margin-bottom: 0 !important;
+}
