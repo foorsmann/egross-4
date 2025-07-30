@@ -32,11 +32,14 @@ class StickyATCError {
     this.node = node;
     this.timer = null;
   }
+  removeDiacritics(text) {
+    return text && text.normalize('NFD').replace(/\p{Diacritic}/gu, '');
+  }
   show(msg) {
     if (!this.node) return;
     clearTimeout(this.timer);
     if (!msg) msg = window.ConceptSGMStrings.cartError || 'Error';
-    console.log('StickyATCError show', msg);
+    msg = this.removeDiacritics(msg);
     this.node.innerHTML = `<span>${msg}</span><button type="button" class="sticky-atc-error-close">&times;</button>`;
     this.node.classList.add('show');
     const btn = this.node.querySelector('.sticky-atc-error-close');
@@ -45,7 +48,6 @@ class StickyATCError {
   }
   hide() {
     if (!this.node) return;
-    console.log('StickyATCError hide');
     this.node.classList.remove('show');
     this.timer = setTimeout(() => {
       this.node.innerHTML = '';
@@ -1235,25 +1237,17 @@ if (!customElements.get('sticky-atc')) {
     }
 
     connectedCallback() {
-      console.log('StickyATC connected');
       this.productFormActions = document.querySelector('.add-to-cart');
-      console.log('productFormActions', this.productFormActions);
       this.container = this.closest('.prod__sticky-atc');
-      console.log('sticky atc container', this.container);
       this.errorWrapper = this.container?.querySelector('.sticky-atc-error');
-      if (!this.errorWrapper) {
-        console.warn('sticky-atc-error container not found');
-      }
       if (window.StickyATCError && this.errorWrapper) {
         this.stickyError = new window.StickyATCError(this.errorWrapper);
       }
       this.form = this.querySelector('form');
-      console.log('sticky atc form', this.form);
       this.init();
     }
 
     init() {
-      console.log('StickyATC init');
       this.mainProduct = document.querySelector('.main-product.product-form');
       this.mainATCButton = this.mainProduct?.querySelector('.add-to-cart');
       this.mainProductDynamic = this.mainProduct?.querySelector(this.selectors.buyNowBtn);
@@ -1311,7 +1305,6 @@ if (!customElements.get('sticky-atc')) {
       this.setObserveTarget();
       this.syncWithMainProductForm();
       if (this.form && this.stickyError) {
-        console.log('attaching submit listener to sticky form');
         this.form.addEventListener('submit', this.handleSubmit.bind(this), true);
       }
     }
@@ -1322,12 +1315,10 @@ if (!customElements.get('sticky-atc')) {
     }
 
     handleSubmit(e) {
-      console.log('sticky atc handleSubmit');
       e.preventDefault();
       e.stopPropagation();
       const missing = validateForm(this.mainProduct || this.form);
       if (missing && missing.length > 0) {
-        console.log('sticky atc validation missing', missing);
         this.stickyError?.show(window.ConceptSGMStrings.requiredField);
         return;
       }
@@ -1343,7 +1334,7 @@ if (!customElements.get('sticky-atc')) {
       if (ConceptSGMSettings.use_ajax_atc) {
         fetch(`${ConceptSGMSettings.routes.cart_add_url}`, config)
           .then(async r => {
-            console.log('ATC response status', r.status);
+            
             let body;
             try {
               const ct = r.headers.get('content-type');
@@ -1354,13 +1345,12 @@ if (!customElements.get('sticky-atc')) {
                 body = { message: text };
               }
             } catch (parseErr) {
-              console.warn('ATC parse error', parseErr);
+              
               body = {};
             }
             return { statusCode: r.status, statusText: r.statusText, body };
           })
           .then(({ statusCode, statusText, body }) => {
-            console.log('ATC response body', body);
             if (statusCode >= 400 || body.status) {
               let msg = body.description || body.message || statusText;
               if (msg && typeof msg === 'string' && /<\/?html/i.test(msg)) {
@@ -1375,7 +1365,9 @@ if (!customElements.get('sticky-atc')) {
                   msg = Array.isArray(errData[key]) ? errData[key][0] : errData[key];
                 }
               }
-              console.log('resolved atc error msg', msg);
+              if (statusCode === 429) {
+                msg = 'Ati trimis prea multe cereri. Va rugam sa incercati din nou mai tarziu.';
+              }
               this.stickyError?.show(msg);
             } else {
               window.ConceptSGMEvents.emit('ON_ITEM_ADDED', body);
@@ -1383,7 +1375,6 @@ if (!customElements.get('sticky-atc')) {
             }
           })
           .catch(err => {
-            console.error('ATC fetch error', err);
             let msg = err && err.message || '';
             if (!msg || /<\/?html/i.test(msg)) {
               msg = window.ConceptSGMStrings.cartError || 'Error';
@@ -1398,7 +1389,6 @@ if (!customElements.get('sticky-atc')) {
     syncWithMainProductForm() {
       const variantInput = this.querySelector('[name="id"]');
       window.ConceptSGMEvents.subscribe(`${this.productId}__VARIANT_CHANGE`, async variant => {
-        console.log('sticky atc variant change', variant);
         variantInput.value = variant.id;
       });
     }
@@ -1406,6 +1396,5 @@ if (!customElements.get('sticky-atc')) {
   });
 }
 }();
-/******/ })()
-console.log('sticky-atc script loaded');
-;
+/******/ })();
+
