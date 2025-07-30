@@ -35,6 +35,7 @@ class StickyATCError {
   show(msg) {
     if (!this.node) return;
     clearTimeout(this.timer);
+    if (!msg) msg = window.ConceptSGMStrings.cartError || 'Error';
     console.log('StickyATCError show', msg);
     this.node.innerHTML = `<span>${msg}</span><button type="button" class="sticky-atc-error-close">&times;</button>`;
     this.node.classList.add('show');
@@ -1348,7 +1349,13 @@ if (!customElements.get('sticky-atc')) {
           .then(({ statusCode, body }) => {
             console.log('ATC response body', body);
             if (statusCode >= 400 || body.status) {
-              this.stickyError?.show(body.description || body.message);
+              let msg = body.description || body.message;
+              if (!msg && body.errors) {
+                if (typeof body.errors === 'string') msg = body.errors;
+                else if (Array.isArray(body.errors)) msg = body.errors[0];
+                else if (body.errors.base) msg = body.errors.base[0];
+              }
+              this.stickyError?.show(msg);
             } else {
               window.ConceptSGMEvents.emit('ON_ITEM_ADDED', body);
               window.Shopify.onItemAdded(body);
