@@ -9,3 +9,14 @@
 .form__input-wrapper--select.flex-1 {
   margin-bottom: 0 !important;
 }
+
+/* Hide empty product form errors */
+.prod__form-error:empty {
+  display: none;
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+.prod__form-error:not(:empty) {
+  display: block;
+}
