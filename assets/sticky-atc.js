@@ -1210,6 +1210,11 @@ if (!customElements.get('sticky-atc')) {
     connectedCallback() {
       this.productFormActions = document.querySelector('.add-to-cart');
       this.container = this.closest('.prod__sticky-atc');
+      this.errorWrapper = this.querySelector('.sticky-atc-error');
+      if (window.StickyATCError && this.errorWrapper) {
+        this.stickyError = new window.StickyATCError(this.errorWrapper);
+      }
+      this.form = this.querySelector('form');
       this.init();
     }
 
@@ -1250,6 +1255,7 @@ if (!customElements.get('sticky-atc')) {
         atc.addEventListener("click", e => {
           e.preventDefault();
           e.stopPropagation();
+          this.stickyError?.show(window.ConceptSGMStrings.requiredField);
           scrollToTop(() => this.mainATCButton.click());
         });
 
@@ -1260,6 +1266,7 @@ if (!customElements.get('sticky-atc')) {
             if (missing.length > 0) {
               e.preventDefault();
               e.stopPropagation();
+              this.stickyError?.show(window.ConceptSGMStrings.requiredField);
               scrollToTop(() => this.mainProductDynamic?.click());
             }
           }, true);
@@ -1268,11 +1275,45 @@ if (!customElements.get('sticky-atc')) {
 
       this.setObserveTarget();
       this.syncWithMainProductForm();
+      if (this.form && this.stickyError) {
+        this.form.addEventListener('submit', this.handleSubmit.bind(this), true);
+      }
     }
 
     checkDevice(e) {
       const sectionHeight = this.clientHeight + 'px';
       document.documentElement.style.setProperty("--f-sticky-atc-bar-height", sectionHeight);
+    }
+
+    handleSubmit(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      const missing = validateForm(this.mainProduct || this.form);
+      if (missing && missing.length > 0) {
+        this.stickyError?.show(window.ConceptSGMStrings.requiredField);
+        return;
+      }
+      const config = {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: new FormData(this.form)
+      };
+      const { ConceptSGMSettings } = window;
+      if (ConceptSGMSettings.use_ajax_atc) {
+        fetch(`${ConceptSGMSettings.routes.cart_add_url}`, config).then(r => r.json()).then(res => {
+          if (res.status) {
+            this.stickyError?.show(res.description);
+          } else {
+            window.ConceptSGMEvents.emit('ON_ITEM_ADDED', res);
+            window.Shopify.onItemAdded(res);
+          }
+        }).catch(err => console.error(err));
+      } else {
+        this.form.submit();
+      }
     }
 
     syncWithMainProductForm() {
@@ -1287,4 +1328,27 @@ if (!customElements.get('sticky-atc')) {
 }
 }();
 /******/ })()
+class StickyATCError {
+  constructor(node) {
+    this.node = node;
+    this.timer = null;
+  }
+  show(msg) {
+    if (!this.node) return;
+    clearTimeout(this.timer);
+    this.node.innerHTML = `<span>${msg}</span><button type="button" class="sticky-atc-error-close">&times;</button>`;
+    this.node.classList.add('show');
+    const btn = this.node.querySelector('.sticky-atc-error-close');
+    btn.addEventListener('click', () => this.hide());
+    this.timer = setTimeout(() => this.hide(), 4000);
+  }
+  hide() {
+    if (!this.node) return;
+    this.node.classList.remove('show');
+    this.timer = setTimeout(() => {
+      this.node.innerHTML = '';
+    }, 300);
+  }
+}
+window.StickyATCError = StickyATCError;
 ;
