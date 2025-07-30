@@ -40,17 +40,17 @@ class StickyATCError {
     clearTimeout(this.timer);
     if (!msg) msg = window.ConceptSGMStrings.cartError || 'Error';
     msg = this.removeDiacritics(msg);
-    this.node.innerHTML = `<span>${msg}</span><button type="button" class="sticky-atc-error-close">&times;</button>`;
+    this.node.textContent = msg;
+    this.node.classList.remove('show');
+    void this.node.offsetWidth;
     this.node.classList.add('show');
-    const btn = this.node.querySelector('.sticky-atc-error-close');
-    btn.addEventListener('click', () => this.hide());
     this.timer = setTimeout(() => this.hide(), 4000);
   }
   hide() {
     if (!this.node) return;
     this.node.classList.remove('show');
     this.timer = setTimeout(() => {
-      this.node.innerHTML = '';
+      this.node.textContent = '';
     }, 300);
   }
 }
@@ -1272,6 +1272,9 @@ if (!customElements.get('sticky-atc')) {
           const method = entry.intersectionRatio !== 1 ? 'remove' : 'add';
           this.container.classList[method]('translate-y-full');
           document.documentElement.classList[entry.intersectionRatio != 1 ? 'remove' : 'add']('stick-atc-show');
+          if (entry.intersectionRatio === 1) {
+            this.stickyError?.hide();
+          }
         });
       }, {
         threshold: 1,
