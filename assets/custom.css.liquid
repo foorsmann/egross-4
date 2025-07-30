@@ -25,19 +25,18 @@
 .sticky-atc-error {
   position: absolute;
   top: -100%;
-  left: auto;
-  right: auto;
+  left: 50%;
   width: 80%;
   max-width: calc(var(--container-width, 1280) * 1px);
-  margin-left: auto;
-  margin-right: auto;
+  margin-left: 0;
+  margin-right: 0;
   padding: .5rem 1rem;
   background: #ef4444;
   color: #fff;
   border: 1px solid #b91c1c;
   border-radius: 4px;
   box-shadow: 0 2px 6px #0003;
-  transform: translateY(-100%);
+  transform: translate(-50%, -100%);
   opacity: 0;
   z-index: 60;
   transition: transform .3s ease, opacity .3s ease;
@@ -45,7 +44,7 @@
 }
 .sticky-atc-error.show {
   opacity: 1;
-  transform: translateY(0);
+  transform: translate(-50%, 0);
 }
 .sticky-atc-error:empty {
   display: none;
