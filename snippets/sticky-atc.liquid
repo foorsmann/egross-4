@@ -21,7 +21,7 @@
     endfor
   endif
 -%}
-<script src="{{ 'sticky-atc.min.js' | asset_url }}" defer="defer"></script>
+<script src="{{ 'sticky-atc.js' | asset_url }}" defer="defer"></script>
 <div
   class="prod__sticky-atc {{ class }} sf-prod__block fixed z-40 bottom-0 inset-x-0 transition-transform translate-y-full{% if enable_dynamic_checkout %} enable-dynamic-checkout{% endif %}"
   data-show-on-desktop="{{ st.use_sticky_atc }}"
@@ -45,6 +45,7 @@
         </div>
       </div>
       <div class="flex shrink-0 items-center psa__form-controls {% unless product.has_only_default_variant %} w-full md:w-auto{% endunless %}">
+        <div class="sticky-atc-error" hidden></div>
         {%- assign product_form_id = 'sticky-atc-form-' | append: section.id -%}
         {%- assign product_form_class = 'sticky-atc-form flex product-form-' | append: section.id -%}
         <product-form class="f-product-form w-full {{ image_field.size }}">

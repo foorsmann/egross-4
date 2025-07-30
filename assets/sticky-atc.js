@@ -1210,6 +1210,7 @@ if (!customElements.get('sticky-atc')) {
     connectedCallback() {
       this.productFormActions = document.querySelector('.add-to-cart');
       this.container = this.closest('.prod__sticky-atc');
+      this.errorDisplay = new StickyATCErrorDisplay(this.container);
       this.init();
     }
 
@@ -1248,6 +1249,14 @@ if (!customElements.get('sticky-atc')) {
 
       if (this.hasCustomFields) {
         atc.addEventListener("click", e => {
+          const missing = validateForm(this.mainProduct);
+          if (missing.length > 0) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.errorDisplay?.show(window.ConceptSGMStrings.requiredField);
+            scrollToTop(() => this.mainATCButton.click());
+            return;
+          }
           e.preventDefault();
           e.stopPropagation();
           scrollToTop(() => this.mainATCButton.click());
@@ -1260,6 +1269,7 @@ if (!customElements.get('sticky-atc')) {
             if (missing.length > 0) {
               e.preventDefault();
               e.stopPropagation();
+              this.errorDisplay?.show(window.ConceptSGMStrings.requiredField);
               scrollToTop(() => this.mainProductDynamic?.click());
             }
           }, true);
@@ -1287,4 +1297,39 @@ if (!customElements.get('sticky-atc')) {
 }
 }();
 /******/ })()
+
+class StickyATCErrorDisplay {
+  constructor(bar) {
+    this.el = bar.querySelector('.sticky-atc-error');
+    this.timer = null;
+    if (this.el) {
+      this.el.addEventListener('click', e => {
+        if (e.target.closest('.sticky-atc-error__close')) {
+          this.hide();
+        }
+      });
+    }
+  }
+
+  show(message) {
+    if (!this.el) return;
+    clearTimeout(this.timer);
+    this.el.innerHTML = `<span>${message}</span><span class="sticky-atc-error__close">&times;</span>`;
+    this.el.removeAttribute('hidden');
+    requestAnimationFrame(() => {
+      this.el.classList.add('show');
+    });
+    this.timer = setTimeout(() => this.hide(), 4000);
+  }
+
+  hide() {
+    if (!this.el) return;
+    this.el.classList.remove('show');
+    clearTimeout(this.timer);
+    this.timer = setTimeout(() => {
+      this.el.setAttribute('hidden', '');
+      this.el.innerHTML = '';
+    }, 300);
+  }
+}
 ;
