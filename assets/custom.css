@@ -7,13 +7,14 @@
   margin-bottom: 0 !important;
 }
 
-/* Hide empty product form errors */
-.prod__form-error:empty {
+/* Hide empty or hidden product form errors */
+.prod__form-error:empty,
+.prod__form-error[hidden] {
   display: none;
   padding-top: 0 !important;
   margin-top: 0 !important;
 }
 
-.prod__form-error:not(:empty) {
+.prod__form-error:not(:empty):not([hidden]) {
   display: block;
 }
