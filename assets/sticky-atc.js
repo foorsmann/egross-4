@@ -27,6 +27,44 @@ const ConceptSGMSettings = window.ConceptSGMSettings || {};
 const ConceptSGMStrings = window.ConceptSGMStrings || {};
 const ConceptSGMLibs = window.ConceptSGMLibs || {};
 
+class StickyATCError {
+  constructor(node) {
+    this.node = node;
+    this.timer = null;
+    if (this.node) {
+      this.msgEl = this.node.querySelector('.sticky-atc-error__msg');
+      if (!this.msgEl) {
+        this.msgEl = document.createElement('span');
+        this.msgEl.className = 'sticky-atc-error__msg';
+        this.node.append(this.msgEl);
+      }
+    }
+  }
+  removeDiacritics(text) {
+    return text && text.normalize('NFD').replace(/\p{Diacritic}/gu, '');
+  }
+  show(msg) {
+    if (!this.node) return;
+    clearTimeout(this.timer);
+    if (!msg) msg = window.ConceptSGMStrings.cartError || 'Error';
+    msg = this.removeDiacritics(msg);
+    this.msgEl.textContent = msg;
+    this.node.classList.remove('show');
+    void this.node.offsetWidth;
+    this.node.classList.add('show');
+    this.timer = setTimeout(() => this.hide(), 4000);
+  }
+  hide() {
+    if (!this.node) return;
+    this.node.classList.remove('show');
+    clearTimeout(this.timer);
+    this.timer = setTimeout(() => {
+      this.msgEl.textContent = '';
+    }, 300);
+  }
+}
+window.StickyATCError = StickyATCError;
+
 /***/ }),
 
 /***/ 9280:
@@ -1210,6 +1248,14 @@ if (!customElements.get('sticky-atc')) {
     connectedCallback() {
       this.productFormActions = document.querySelector('.add-to-cart');
       this.container = this.closest('.prod__sticky-atc');
+      this.errorWrapper = this.container?.previousElementSibling;
+      if (!(this.errorWrapper && this.errorWrapper.classList.contains('sticky-atc-error'))) {
+        this.errorWrapper = this.container?.querySelector('.sticky-atc-error');
+      }
+      if (window.StickyATCError && this.errorWrapper) {
+        this.stickyError = new window.StickyATCError(this.errorWrapper);
+      }
+      this.form = this.querySelector('form');
       this.init();
     }
 
@@ -1238,6 +1284,9 @@ if (!customElements.get('sticky-atc')) {
           const method = entry.intersectionRatio !== 1 ? 'remove' : 'add';
           this.container.classList[method]('translate-y-full');
           document.documentElement.classList[entry.intersectionRatio != 1 ? 'remove' : 'add']('stick-atc-show');
+          if (entry.intersectionRatio === 1) {
+            this.stickyError?.hide();
+          }
         });
       }, {
         threshold: 1,
@@ -1250,6 +1299,7 @@ if (!customElements.get('sticky-atc')) {
         atc.addEventListener("click", e => {
           e.preventDefault();
           e.stopPropagation();
+          this.stickyError?.show(window.ConceptSGMStrings.requiredField);
           scrollToTop(() => this.mainATCButton.click());
         });
 
@@ -1260,6 +1310,7 @@ if (!customElements.get('sticky-atc')) {
             if (missing.length > 0) {
               e.preventDefault();
               e.stopPropagation();
+              this.stickyError?.show(window.ConceptSGMStrings.requiredField);
               scrollToTop(() => this.mainProductDynamic?.click());
             }
           }, true);
@@ -1268,6 +1319,9 @@ if (!customElements.get('sticky-atc')) {
 
       this.setObserveTarget();
       this.syncWithMainProductForm();
+      if (this.form && this.stickyError) {
+        this.form.addEventListener('submit', this.handleSubmit.bind(this), true);
+      }
     }
 
     checkDevice(e) {
@@ -1275,10 +1329,81 @@ if (!customElements.get('sticky-atc')) {
       document.documentElement.style.setProperty("--f-sticky-atc-bar-height", sectionHeight);
     }
 
+    handleSubmit(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      const missing = validateForm(this.mainProduct || this.form);
+      if (missing && missing.length > 0) {
+        this.stickyError?.show(window.ConceptSGMStrings.requiredField);
+        return;
+      }
+      const config = {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: new FormData(this.form)
+      };
+      const { ConceptSGMSettings } = window;
+      if (ConceptSGMSettings.use_ajax_atc) {
+        fetch(`${ConceptSGMSettings.routes.cart_add_url}`, config)
+          .then(async r => {
+            
+            let body;
+            try {
+              const ct = r.headers.get('content-type');
+              if (ct && ct.includes('application/json')) {
+                body = await r.json();
+              } else {
+                const text = await r.text();
+                body = { message: text };
+              }
+            } catch (parseErr) {
+              
+              body = {};
+            }
+            return { statusCode: r.status, statusText: r.statusText, body };
+          })
+          .then(({ statusCode, statusText, body }) => {
+            if (statusCode >= 400 || body.status) {
+              let msg = body.description || body.message || statusText;
+              if (msg && typeof msg === 'string' && /<\/?html/i.test(msg)) {
+                msg = window.ConceptSGMStrings.cartError || 'Error';
+              }
+              const errData = body.errors;
+              if (!msg && errData) {
+                if (typeof errData === 'string') msg = errData;
+                else if (Array.isArray(errData)) msg = errData[0];
+                else if (typeof errData === 'object') {
+                  const key = Object.keys(errData)[0];
+                  msg = Array.isArray(errData[key]) ? errData[key][0] : errData[key];
+                }
+              }
+              if (statusCode === 429) {
+                msg = 'Ati trimis prea multe cereri. Va rugam sa incercati din nou mai tarziu.';
+              }
+              this.stickyError?.show(msg);
+            } else {
+              window.ConceptSGMEvents.emit('ON_ITEM_ADDED', body);
+              window.Shopify.onItemAdded(body);
+            }
+          })
+          .catch(err => {
+            let msg = err && err.message || '';
+            if (!msg || /<\/?html/i.test(msg)) {
+              msg = window.ConceptSGMStrings.cartError || 'Error';
+            }
+            this.stickyError?.show(msg);
+          });
+      } else {
+        this.form.submit();
+      }
+    }
+
     syncWithMainProductForm() {
       const variantInput = this.querySelector('[name="id"]');
       window.ConceptSGMEvents.subscribe(`${this.productId}__VARIANT_CHANGE`, async variant => {
-        console.log('variant change');
         variantInput.value = variant.id;
       });
     }
@@ -1286,5 +1411,5 @@ if (!customElements.get('sticky-atc')) {
   });
 }
 }();
-/******/ })()
-;
+/******/ })();
+

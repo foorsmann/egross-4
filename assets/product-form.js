@@ -97,36 +97,58 @@ if (!customElements.get("product-form")) {
       } = window;
 
       if (ConceptSGMSettings.use_ajax_atc) {
-        fetch(`${ConceptSGMSettings.routes.cart_add_url}`, config).then(response => response.json()).then(response => {
-          if (response.status) {
-            return window.ConceptSGMTheme.Notification.show({
-              target: this.notificationType === "toast" ? document.body : this.domNodes.errorWrapper,
-              method: "appendChild",
-              type: "warning",
-              message: response.description,
-              last: 3000,
-              sticky: this.notificationType === "toast"
-            });
-          }
+        fetch(`${ConceptSGMSettings.routes.cart_add_url}`, config)
+          .then(async r => {
+            let body;
+            try {
+              const ct = r.headers.get('content-type');
+              if (ct && ct.includes('application/json')) {
+                body = await r.json();
+              } else {
+                const text = await r.text();
+                body = { message: text };
+              }
+            } catch (err) {
+              body = {};
+            }
+            return { statusCode: r.status, body };
+          })
+          .then(({ statusCode, body }) => {
+            if (statusCode >= 400 || body.status) {
+              let msg = body.description || body.message || body.errors || window.ConceptSGMStrings.cartError;
+              if (statusCode === 429) {
+                msg = 'Ati trimis prea multe cereri. Va rugam sa incercati din nou mai tarziu.';
+              }
+              return window.ConceptSGMTheme.Notification.show({
+                target: this.notificationType === "toast" ? document.body : this.domNodes.errorWrapper,
+                method: "appendChild",
+                type: "warning",
+                message: msg,
+                last: 3000,
+                sticky: this.notificationType === "toast"
+              });
+            }
 
-          if (!ConceptSGMSettings.enable_cart_drawer) {
-            window.ConceptSGMTheme.Notification.show({
-              target: this.domNodes.errorWrapper,
-              method: "appendChild",
-              type: "success",
-              message: window.ConceptSGMStrings.itemAdded,
-              last: 3000,
-              sticky: this.notificationType === "toast"
-            });
-          }
+            if (!ConceptSGMSettings.enable_cart_drawer) {
+              window.ConceptSGMTheme.Notification.show({
+                target: this.domNodes.errorWrapper,
+                method: "appendChild",
+                type: "success",
+                message: window.ConceptSGMStrings.itemAdded,
+                last: 3000,
+                sticky: this.notificationType === "toast"
+              });
+            }
 
-          window.ConceptSGMEvents.emit(`ON_ITEM_ADDED`, response);
-          window.Shopify.onItemAdded(response);
-        }).catch(e => {
-          console.error(e);
-        }).finally(() => {
-          this.toggleSpinner(false);
-        });
+            window.ConceptSGMEvents.emit(`ON_ITEM_ADDED`, body);
+            window.Shopify.onItemAdded(body);
+          })
+          .catch(e => {
+            console.error(e);
+          })
+          .finally(() => {
+            this.toggleSpinner(false);
+          });
       } else {
         this.form.submit();
       }
