@@ -27,6 +27,32 @@ const ConceptSGMSettings = window.ConceptSGMSettings || {};
 const ConceptSGMStrings = window.ConceptSGMStrings || {};
 const ConceptSGMLibs = window.ConceptSGMLibs || {};
 
+class StickyATCError {
+  constructor(node) {
+    this.node = node;
+    this.timer = null;
+  }
+  show(msg) {
+    if (!this.node) return;
+    clearTimeout(this.timer);
+    console.log('StickyATCError show', msg);
+    this.node.innerHTML = `<span>${msg}</span><button type="button" class="sticky-atc-error-close">&times;</button>`;
+    this.node.classList.add('show');
+    const btn = this.node.querySelector('.sticky-atc-error-close');
+    btn.addEventListener('click', () => this.hide());
+    this.timer = setTimeout(() => this.hide(), 4000);
+  }
+  hide() {
+    if (!this.node) return;
+    console.log('StickyATCError hide');
+    this.node.classList.remove('show');
+    this.timer = setTimeout(() => {
+      this.node.innerHTML = '';
+    }, 300);
+  }
+}
+window.StickyATCError = StickyATCError;
+
 /***/ }),
 
 /***/ 9280:
@@ -1349,30 +1375,5 @@ if (!customElements.get('sticky-atc')) {
 }
 }();
 /******/ })()
-class StickyATCError {
-  constructor(node) {
-    this.node = node;
-    this.timer = null;
-  }
-  show(msg) {
-    if (!this.node) return;
-    clearTimeout(this.timer);
-    console.log('StickyATCError show', msg);
-    this.node.innerHTML = `<span>${msg}</span><button type="button" class="sticky-atc-error-close">&times;</button>`;
-    this.node.classList.add('show');
-    const btn = this.node.querySelector('.sticky-atc-error-close');
-    btn.addEventListener('click', () => this.hide());
-    this.timer = setTimeout(() => this.hide(), 4000);
-  }
-  hide() {
-    if (!this.node) return;
-    console.log('StickyATCError hide');
-    this.node.classList.remove('show');
-    this.timer = setTimeout(() => {
-      this.node.innerHTML = '';
-    }, 300);
-  }
-}
-window.StickyATCError = StickyATCError;
 console.log('sticky-atc script loaded');
 ;
