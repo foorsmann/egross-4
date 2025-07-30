@@ -44,7 +44,7 @@
           </div>
         </div>
       </div>
-      <div class="flex shrink-0 items-center psa__form-controls {% unless product.has_only_default_variant %} w-full md:w-auto{% endunless %}">
+      <div class="flex shrink-0 items-center psa__form-controls relative {% unless product.has_only_default_variant %} w-full md:w-auto{% endunless %}">
         {%- assign product_form_id = 'sticky-atc-form-' | append: section.id -%}
         {%- assign product_form_class = 'sticky-atc-form flex product-form-' | append: section.id -%}
         <product-form class="f-product-form w-full {{ image_field.size }}">
@@ -68,6 +68,7 @@
                 </option>
               {% endfor %}
             </select>
+            <div class="sticky-atc-error"></div>
             {%- capture qty_input_class -%}
               mr-2.5 lg:mr-5 lg:flex {% unless product.has_only_default_variant %}hidden{% endunless %}
             {%- endcapture -%}
