@@ -60,7 +60,6 @@ if (!customElements.get("product-form")) {
               message: window.ConceptSGMStrings.requiredField,
               delay: 100
             });
-            console.warn('Missing field(s): ', missing);
           }
         }, true);
       }
@@ -72,7 +71,7 @@ if (!customElements.get("product-form")) {
       const missing = validateForm(this.form.closest(".main-product__blocks"));
 
       if (missing?.length > 0) {
-        console.warn("Missing field(s): ", missing);
+        /* Missing field warnings removed */
         this.toggleSpinner(false);
         return window.ConceptSGMTheme.Notification.show({
           target: this?.domNodes?.errorWrapper,
@@ -143,9 +142,7 @@ if (!customElements.get("product-form")) {
             window.ConceptSGMEvents.emit(`ON_ITEM_ADDED`, body);
             window.Shopify.onItemAdded(body);
           })
-          .catch(e => {
-            console.error(e);
-          })
+          .catch(() => {})
           .finally(() => {
             this.toggleSpinner(false);
           });

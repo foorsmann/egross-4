@@ -322,8 +322,7 @@ class JSX {
 
     if (attrs && !window.__aleartedJSXData) {
       if (Object.keys(attrs).find(key => key.match(/^data-/))) {
-        console.trace(`Your "${tagName}" component uses a data-* attribute! Use dataSet instead!!`);
-        alert('Do not use data-* in your JSX component! Use dataSet instead!! - Check the console.trace for more info');
+        alert('Do not use data-* in your JSX component! Use dataSet instead!!');
         window.__aleartedJSXData = true;
       }
     }
@@ -426,9 +425,7 @@ class Event {
       args[_key - 1] = arguments[_key];
     }
 
-    console.groupCollapsed(`Event emitted: ${event}`);
-    console.trace();
-    console.groupEnd();
+    /* event logging removed */
     (this.events[event] || []).forEach(handler => {
       handler(...args);
     });
@@ -1114,7 +1111,7 @@ function transitionScrollTo(target, parent, settings, scrollAncestor, callback) 
     }
 
     if (settings.debug) {
-      console.log('Scrolling ended with type', endType, 'for', parent);
+      /* Debug logging removed */
     }
 
     callback(endType);
@@ -1223,10 +1220,10 @@ module.exports = function (target, settings, callback) {
   var isScrollable = settings.isScrollable;
 
   if (settings.debug) {
-    console.log('About to scroll to', target);
+    /* Debug logging removed */
 
     if (!parent) {
-      console.error('Target did not have a parent, is it mounted in the DOM?');
+      /* console.error removed */
     }
   }
 
@@ -1234,7 +1231,7 @@ module.exports = function (target, settings, callback) {
 
   while (parent) {
     if (settings.debug) {
-      console.log('Scrolling parent node', parent);
+      /* Debug logging removed */
     }
 
     if (validTarget(parent, parents) && (isScrollable ? isScrollable(parent, defaultIsScrollable) : defaultIsScrollable(parent))) {
@@ -6865,7 +6862,9 @@ const {
   themeScriptURLs,
   themeStyleURLs
 } = window;
-if (!themeScriptURLs || !themeStyleURLs) console.warn("Missing Assest URLs source");
+if (!themeScriptURLs || !themeStyleURLs) {
+  /* Missing asset URLs warning removed */
+}
 const themeAssets = {
   'js': {
     urls: themeScriptURLs,
@@ -6878,9 +6877,7 @@ const themeAssets = {
 };
 
 function log(asset) {
-  console.groupCollapsed('%c Asset loaded: ', '#f7a046', asset);
-  console.trace();
-  console.groupEnd();
+  /* asset logging removed */
 }
 
 function load_assets_loadAssets(param) {
@@ -6904,7 +6901,7 @@ function load_assets_loadAssets(param) {
         await load(url, ...rest);
         log(`${name}.${type}`);
       } catch (err) {
-        console.warn(`Failed to load asset: ${file}.`, err);
+        /* Failed asset warning removed */
       }
     })).then(resolve).catch(reject);
   });
@@ -7205,7 +7202,7 @@ const setSwatchesOptions = () => {
       }
     });
   } catch (e) {
-    console.error('Failed to convert color/image swatch structure!', e);
+    /* error suppressed */
   }
 };
 
@@ -7241,7 +7238,7 @@ function runHelpers() {
     addCustomerFormHandlers();
     initScrollTop();
   } catch (err) {
-    console.error('Failed to run helpers.', err);
+    /* helper error suppressed */
   }
 }
 ;// CONCATENATED MODULE: ./src/js/components/Spinner.jsx
@@ -7295,7 +7292,7 @@ function handleSubscribe(data) {
 }
 async function applyDiscountCode(code) {
   if (code) {
-    fetch(`${helpers_ConceptSGMSettings.shop_domain}/discount/${code}`).then(() => console.log(`[Foxkit] - Discount applied. Code: ${code}`)).catch(console.error);
+    fetch(`${helpers_ConceptSGMSettings.shop_domain}/discount/${code}`).then(() => {}).catch(() => {});
   }
 }
 function copyToClipboard(value, button) {
@@ -7383,7 +7380,6 @@ const updateCartAttributes = offer => {
           }
         })
       }).then(cart => {
-        console.info('Cart attributes updated!. New cart:', cart.attributes);
         window.Shopify.onCartUpdate();
         resolve(true);
       }).catch(reject);
@@ -7955,7 +7951,6 @@ function exitIntent(handleOpen) {
   document.addEventListener('mouseout', onMouseOut);
 }
 function setRepeatOpen(saveKey, saveValue, repeat) {
-  console.log(repeat, 'repeat');
   let expires;
 
   switch (repeat) {
@@ -8214,7 +8209,7 @@ class LuckyWheel {
         delay_show,
         teaser_when
       } = this.settings;
-      console.log(teaser_when, 'teaser_whendsd');
+      /* Debug logging removed */
       if (this.forcedOpen) return this.open(false);
 
       if (teaser_activate && teaser_when === 'always') {
@@ -8313,7 +8308,6 @@ class LuckyWheel {
       const nameVal = fieldName?.value || '';
       const birthVal = fieldBirthday?.value || '';
       const validated = this.validateField(emailVal);
-      console.log(validated, 'validated');
 
       if (validated) {
         const saveToApp = this.settings?.save_to?.includes('foxkit_subscribers');
@@ -8408,27 +8402,34 @@ class LuckyWheel {
         teaser_activate: this.settings?.teaser_activate
       });
       document.body.appendChild(this.teaser);
-      document.querySelector(this.selectors.teaser).addEventListener('click', () => {
-        gsapWithCSS.to(this.domNodes.teaser, {
-          autoAlpha: 0,
-          duration: 0.2
+      const teaserTrigger = document.querySelector(this.selectors.teaser);
+      if (teaserTrigger) {
+        teaserTrigger.addEventListener('click', () => {
+          gsapWithCSS.to(this.domNodes.teaser, {
+            autoAlpha: 0,
+            duration: 0.2
+          });
+          this.open();
         });
-        this.open();
-      });
+      }
       this.closeTeaser();
     });
 
     (0,defineProperty/* default */.Z)(this, "closeTeaser", () => {
-      this.teaser.querySelector('.lucky-wheel__teaser-close').addEventListener('click', e => {
-        e.preventDefault();
-        e.stopPropagation();
-        this.teaser.remove();
-        let cookieData = getCookie(this.saveKey);
-        if (cookieData) cookieData = JSON.parse(cookieData);
-        setCookie(this.saveKey, JSON.stringify({ ...cookieData,
-          dismissed: true
-        }), 7);
-      });
+      const closeBtn = this.teaser.querySelector('.lucky-wheel__teaser-close');
+      if (closeBtn) {
+        closeBtn.addEventListener('click', e => {
+          e.preventDefault();
+          e.stopPropagation();
+          this.teaser.remove();
+          let cookieData = getCookie(this.saveKey);
+          if (cookieData) cookieData = JSON.parse(cookieData);
+          setCookie(this.saveKey, JSON.stringify({
+            ...cookieData,
+            dismissed: true
+          }), 7);
+        });
+      }
     });
 
     (0,defineProperty/* default */.Z)(this, "toggleLoading", loading => {
@@ -8448,7 +8449,6 @@ class LuckyWheel {
       paused: true
     });
     this.lastIndex = -1;
-    console.log(this.settings, 'this.settings');
     const qs = (0,query_string.parse)(location.search);
 
     if (qs[this.forceOpenQueryFlag] === "true") {

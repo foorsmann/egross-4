@@ -2626,7 +2626,10 @@ class Popup {
         teaser_activate: this.settings?.teaser_activate
       });
       document.body.appendChild(this.teaser);
-      document.querySelector(this.selectors.teaser).addEventListener('click', this.open);
+      const teaserTrigger = document.querySelector(this.selectors.teaser);
+      if (teaserTrigger) {
+        teaserTrigger.addEventListener('click', this.open);
+      }
     });
 
     (0,defineProperty/* default */.Z)(this, "toggleLoading", loading => {
