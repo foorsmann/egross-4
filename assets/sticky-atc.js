@@ -1363,6 +1363,9 @@ if (!customElements.get('sticky-atc')) {
             console.log('ATC response body', body);
             if (statusCode >= 400 || body.status) {
               let msg = body.description || body.message || statusText;
+              if (msg && typeof msg === 'string' && /<\/?html/i.test(msg)) {
+                msg = window.ConceptSGMStrings.cartError || 'Error';
+              }
               const errData = body.errors;
               if (!msg && errData) {
                 if (typeof errData === 'string') msg = errData;
@@ -1381,7 +1384,10 @@ if (!customElements.get('sticky-atc')) {
           })
           .catch(err => {
             console.error('ATC fetch error', err);
-            const msg = window.ConceptSGMStrings.cartError || err.message || 'Error';
+            let msg = err && err.message || '';
+            if (!msg || /<\/?html/i.test(msg)) {
+              msg = window.ConceptSGMStrings.cartError || 'Error';
+            }
             this.stickyError?.show(msg);
           });
       } else {
