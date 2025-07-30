@@ -87,26 +87,46 @@ var LABEL_SUFFIX = '';
     });
   }
 
+  function clampAndHighlightQtyNoSnap(input){
+    var step = parseInt(input.getAttribute('data-min-qty'), 10) || parseInt(input.step,10) || 1;
+    var min = parseInt(input.min, 10) || step;
+    var max = input.max ? parseInt(input.max, 10) : Infinity;
+    var val = parseInt(input.value, 10);
+    val = isNaN(val) ? min : val;
+    if(val > max) val = max;
+    if(val < min) val = min;
+    input.value = val;
+    if(val >= max){
+      input.classList.add('text-red-600');
+      input.style.color = '#e3342f';
+    }else{
+      input.classList.remove('text-red-600');
+      input.style.color = '';
+    }
+    return val;
+  }
+
   function attachQtyInputListeners(){
-    var selectors = '.quantity-input__element, .scd-item__qty_input, input[data-quantity-input]';
+    var selectors = '.quantity-input__element, input[data-quantity-input]';
     document.querySelectorAll(selectors).forEach(function(input){
       if(input.dataset.qtyListener) return;
+      if(input.closest('.scd-item') || input.closest('[data-cart-item]')) return;
       input.dataset.qtyListener = '1';
       ['input','change','blur'].forEach(function(ev){
         input.addEventListener(ev, function(){
-          validateAndHighlightQty(input);
+          clampAndHighlightQtyNoSnap(input);
           updateIncreaseBtnState(input);
           syncOtherQtyInputs(input);
         });
       });
       input.addEventListener('keypress', function(e){
         if(e.key === 'Enter'){
-          validateAndHighlightQty(input);
+          clampAndHighlightQtyNoSnap(input);
           updateIncreaseBtnState(input);
           syncOtherQtyInputs(input);
         }
       });
-      validateAndHighlightQty(input);
+      clampAndHighlightQtyNoSnap(input);
       updateIncreaseBtnState(input);
       syncOtherQtyInputs(input);
     });
