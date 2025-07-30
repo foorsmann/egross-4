@@ -252,8 +252,7 @@ class JSX {
 
     if (attrs && !window.__aleartedJSXData) {
       if (Object.keys(attrs).find(key => key.match(/^data-/))) {
-        console.trace(`Your "${tagName}" component uses a data-* attribute! Use dataSet instead!!`);
-        alert('Do not use data-* in your JSX component! Use dataSet instead!! - Check the console.trace for more info');
+        alert('Do not use data-* in your JSX component! Use dataSet instead!!');
         window.__aleartedJSXData = true;
       }
     }
@@ -356,9 +355,6 @@ class Event {
       args[_key - 1] = arguments[_key];
     }
 
-    console.groupCollapsed(`Event emitted: ${event}`);
-    console.trace();
-    console.groupEnd();
     (this.events[event] || []).forEach(handler => {
       handler(...args);
     });
@@ -702,7 +698,9 @@ class Event {
       }
     });
     window.dispatchEvent(e);
-    e.defaultPrevented || console.error(a);
+    if (!e.defaultPrevented) {
+      /* error logging removed */
+    }
   }
 
   ;
@@ -1559,7 +1557,7 @@ function transitionScrollTo(target, parent, settings, scrollAncestor, callback) 
     }
 
     if (settings.debug) {
-      console.log('Scrolling ended with type', endType, 'for', parent);
+      /* Debug logging removed */
     }
 
     callback(endType);
@@ -1668,10 +1666,10 @@ module.exports = function (target, settings, callback) {
   var isScrollable = settings.isScrollable;
 
   if (settings.debug) {
-    console.log('About to scroll to', target);
+    /* Debug logging removed */
 
     if (!parent) {
-      console.error('Target did not have a parent, is it mounted in the DOM?');
+      /* console.error removed */
     }
   }
 
@@ -1679,7 +1677,7 @@ module.exports = function (target, settings, callback) {
 
   while (parent) {
     if (settings.debug) {
-      console.log('Scrolling parent node', parent);
+      /* Debug logging removed */
     }
 
     if (validTarget(parent, parents) && (isScrollable ? isScrollable(parent, defaultIsScrollable) : defaultIsScrollable(parent))) {
@@ -1873,7 +1871,9 @@ const {
   themeScriptURLs,
   themeStyleURLs
 } = window;
-if (!themeScriptURLs || !themeStyleURLs) console.warn("Missing Assest URLs source");
+if (!themeScriptURLs || !themeStyleURLs) {
+  /* Missing asset URLs warning removed */
+}
 const themeAssets = {
   'js': {
     urls: themeScriptURLs,
@@ -1886,9 +1886,7 @@ const themeAssets = {
 };
 
 function log(asset) {
-  console.groupCollapsed('%c Asset loaded: ', '#f7a046', asset);
-  console.trace();
-  console.groupEnd();
+  /* asset logging removed */
 }
 
 function load_assets_loadAssets(param) {
@@ -1912,7 +1910,7 @@ function load_assets_loadAssets(param) {
         await load(url, ...rest);
         log(`${name}.${type}`);
       } catch (err) {
-        console.warn(`Failed to load asset: ${file}.`, err);
+        /* Failed asset warning removed */
       }
     })).then(resolve).catch(reject);
   });
@@ -2213,7 +2211,7 @@ const setSwatchesOptions = () => {
       }
     });
   } catch (e) {
-    console.error('Failed to convert color/image swatch structure!', e);
+    /* error suppressed */
   }
 };
 
@@ -2249,7 +2247,7 @@ function runHelpers() {
     addCustomerFormHandlers();
     initScrollTop();
   } catch (err) {
-    console.error('Failed to run helpers.', err);
+    /* helper error suppressed */
   }
 }
 // EXTERNAL MODULE: ./src/js/pages/collection/filters-elements/facet-remove.js
@@ -2284,7 +2282,6 @@ class PriceRange extends HTMLElement {
     const input = event.currentTarget;
     const type = input.dataset.type;
     const value = Number(input.value);
-    console.log(type, value, 'onSliderChange');
     const {
       minInput,
       maxInput,
@@ -2762,7 +2759,7 @@ class CollectionFiltersForm extends HTMLElement {
         }
 
         _this.loading.finish(_this.scrollToTop);
-      }).catch(console.error);
+      }).catch(() => {});
       if (updateURLHash) _this.updateURLHash(searchParams);
     });
 
@@ -2776,7 +2773,7 @@ class CollectionFiltersForm extends HTMLElement {
           html: text
         });
         this.renderProductGrid(text);
-      }).catch(console.error);
+      }).catch(() => {});
     });
 
     _defineProperty(this, "renderSectionFromCache", async _url => {

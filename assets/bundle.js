@@ -2004,13 +2004,16 @@ class QuantityInput extends HTMLElement {
     });
     this.productId = this.dataset.productId;
     this.querySelectorAll('button').forEach(button => button.addEventListener('click', this.onButtonClick.bind(this)));
-    this.input.addEventListener('change', () => {
-      if (this.input.value <= 1) this.input.value = 1;
-    });
+    if (this.input) {
+      this.input.addEventListener('change', () => {
+        if (this.input.value <= 1) this.input.value = 1;
+      });
+    }
   }
 
   onButtonClick(event) {
     event.preventDefault();
+    if (!this.input) return;
     const previousValue = this.input.value;
     event.target.name === 'plus' ? this.input.stepUp() : this.input.stepDown();
     if (previousValue !== this.input.value) this.input.dispatchEvent(this.changeEvent);
