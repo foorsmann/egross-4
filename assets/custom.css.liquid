@@ -28,10 +28,10 @@
   left: 0;
   right: 0;
   width: auto;
-  padding: .5rem 1rem;
-  margin-left: 35px;
-  margin-right: 90px;
   max-width: calc(var(--container-width, 1280) * 1px);
+  margin-left: 2rem;
+  margin-right: 2rem;
+  padding: .5rem 1rem;
   background: #ef4444;
   color: #fff;
   border: 1px solid #b91c1c;
@@ -41,6 +41,7 @@
   opacity: 0;
   z-index: 60;
   transition: transform .3s ease, opacity .3s ease;
+  pointer-events: auto;
 }
 .sticky-atc-error.show {
   opacity: 1;
@@ -48,4 +49,19 @@
 }
 .sticky-atc-error:empty {
   display: none;
+}
+.sticky-atc-error__msg {
+  display: block;
+  padding-right: 1.5rem;
+}
+.sticky-atc-error__close {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  border: none;
+  background: none;
+  color: #fff;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
 }

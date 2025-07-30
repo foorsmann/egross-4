@@ -30,7 +30,6 @@
   data-view="sticky-atc"
 >
   <div class="{{ st.container }}{% if st.container == 'w-full' %} px-4{% endif %}">
-    <div class="sticky-atc-error"></div>
     <sticky-atc class="form product-form lg:container flex items-center justify-between" data-product-id="{{ product.id }}">
       <div class="{% if product.has_only_default_variant %} flex {% else %} hidden {% endif %} md:flex pr-2">
         <div class="spc__main-img cursor-pointer py-1.5">
@@ -46,6 +45,7 @@
         </div>
       </div>
       <div class="flex shrink-0 items-center psa__form-controls relative {% unless product.has_only_default_variant %} w-full md:w-auto{% endunless %}">
+        <div class="sticky-atc-error" aria-live="polite"></div>
         {%- assign product_form_id = 'sticky-atc-form-' | append: section.id -%}
         {%- assign product_form_class = 'sticky-atc-form flex product-form-' | append: section.id -%}
         <product-form class="f-product-form w-full {{ image_field.size }}">

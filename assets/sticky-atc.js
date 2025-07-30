@@ -31,6 +31,23 @@ class StickyATCError {
   constructor(node) {
     this.node = node;
     this.timer = null;
+    if (this.node) {
+      this.msgEl = this.node.querySelector('.sticky-atc-error__msg');
+      if (!this.msgEl) {
+        this.msgEl = document.createElement('span');
+        this.msgEl.className = 'sticky-atc-error__msg';
+        this.node.append(this.msgEl);
+      }
+      this.closeBtn = this.node.querySelector('.sticky-atc-error__close');
+      if (!this.closeBtn) {
+        this.closeBtn = document.createElement('button');
+        this.closeBtn.setAttribute('type', 'button');
+        this.closeBtn.className = 'sticky-atc-error__close';
+        this.closeBtn.innerHTML = '&times;';
+        this.node.append(this.closeBtn);
+      }
+      this.closeBtn.addEventListener('click', () => this.hide());
+    }
   }
   removeDiacritics(text) {
     return text && text.normalize('NFD').replace(/\p{Diacritic}/gu, '');
@@ -40,7 +57,7 @@ class StickyATCError {
     clearTimeout(this.timer);
     if (!msg) msg = window.ConceptSGMStrings.cartError || 'Error';
     msg = this.removeDiacritics(msg);
-    this.node.textContent = msg;
+    this.msgEl.textContent = msg;
     this.node.classList.remove('show');
     void this.node.offsetWidth;
     this.node.classList.add('show');
@@ -49,8 +66,9 @@ class StickyATCError {
   hide() {
     if (!this.node) return;
     this.node.classList.remove('show');
+    clearTimeout(this.timer);
     this.timer = setTimeout(() => {
-      this.node.textContent = '';
+      this.msgEl.textContent = '';
     }, 300);
   }
 }
