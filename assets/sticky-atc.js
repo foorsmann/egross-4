@@ -1248,7 +1248,10 @@ if (!customElements.get('sticky-atc')) {
     connectedCallback() {
       this.productFormActions = document.querySelector('.add-to-cart');
       this.container = this.closest('.prod__sticky-atc');
-      this.errorWrapper = this.container?.querySelector('.sticky-atc-error');
+      this.errorWrapper = this.container?.previousElementSibling;
+      if (!(this.errorWrapper && this.errorWrapper.classList.contains('sticky-atc-error'))) {
+        this.errorWrapper = this.container?.querySelector('.sticky-atc-error');
+      }
       if (window.StickyATCError && this.errorWrapper) {
         this.stickyError = new window.StickyATCError(this.errorWrapper);
       }

@@ -22,6 +22,7 @@
   endif
 -%}
 <script src="{{ 'sticky-atc.js' | asset_url }}" defer="defer"></script>
+<div class="sticky-atc-error" aria-live="polite"><span class="sticky-atc-error__msg"></span></div>
 <div
   class="prod__sticky-atc {{ class }} sf-prod__block fixed z-40 bottom-0 inset-x-0 transition-transform translate-y-full{% if enable_dynamic_checkout %} enable-dynamic-checkout{% endif %}"
   data-show-on-desktop="{{ st.use_sticky_atc }}"
@@ -29,7 +30,6 @@
   style="box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.09);"
   data-view="sticky-atc"
 >
-  <div class="sticky-atc-error" aria-live="polite"><span class="sticky-atc-error__msg"></span></div>
   <div class="{{ st.container }}{% if st.container == 'w-full' %} px-4{% endif %}">
     <sticky-atc class="form product-form lg:container flex items-center justify-between" data-product-id="{{ product.id }}">
       <div class="{% if product.has_only_default_variant %} flex {% else %} hidden {% endif %} md:flex pr-2">
