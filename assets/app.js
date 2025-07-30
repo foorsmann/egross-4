@@ -7455,14 +7455,10 @@ addEventDelegate({
     const step = Number(input.getAttribute('data-min-qty')) || Number(input.step) || 1;
     const min = Number(input.min) || step;
     const max = Number(input.max) || Infinity;
-    let quantity = Number(input.value) || min;
-
-    // Snap manual input to the closest allowed value
+    let quantity = parseFloat(input.value);
+    if (Number.isNaN(quantity)) quantity = min;
+    if (quantity < min) quantity = min;
     if (quantity > max) quantity = max;
-    if (quantity !== max) {
-      quantity = Math.floor((quantity - min) / step) * step + min;
-      if (quantity < min) quantity = min;
-    }
 
     input.value = quantity;
     if (quantity >= max) {
@@ -8862,17 +8858,10 @@ _defineProperty(this, "handleQtyInputChange", e => {
   const attrMax = parseFloat(input.max);
   if (!Number.isNaN(attrMax)) max = attrMax;
 
-  let val = Number(input.value) || min;
-
-  const snapDown = v => {
-    if (!isFinite(v)) return min;
-    if (v < min) return min;
-    return Math.floor((v - min) / step) * step + min;
-  };
-
-  if (val > max) val = max;
-  if (val !== max) val = snapDown(val);
+  let val = parseFloat(input.value);
+  if (Number.isNaN(val)) val = min;
   if (val < min) val = min;
+  if (val > max) val = max;
   input.value = val;
 
   // Colorare roșie la maxim

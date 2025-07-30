@@ -19,13 +19,19 @@
     return val;
   }
 
-  function validateAndHighlightQty(input){
+  function validateAndHighlightQty(input, snap){
+    if(snap === undefined) snap = true;
     var step = parseInt(input.getAttribute('data-min-qty'), 10) || parseInt(input.step,10) || 1;
     var min = parseInt(input.min, 10) || step;
     var max = input.max ? parseInt(input.max, 10) : Infinity;
     var val = parseInt(input.value, 10);
     val = isNaN(val) ? min : val;
-    val = clampAndSnap(val, step, min, max);
+    if(snap){
+      val = clampAndSnap(val, step, min, max);
+    }else{
+      if(val < min) val = min;
+      if(val > max) val = max;
+    }
     input.value = val;
     if(val >= max){
       input.classList.add('text-red-600');
@@ -79,7 +85,7 @@ var LABEL_SUFFIX = '';
       if(input === changedInput) return;
       if(input.value !== value){
         input.value = value;
-        validateAndHighlightQty(input);
+        validateAndHighlightQty(input, false);
         updateIncreaseBtnState(input);
         input.dispatchEvent(new Event('input', { bubbles: true }));
         input.dispatchEvent(new Event('change', { bubbles: true }));
@@ -94,19 +100,19 @@ var LABEL_SUFFIX = '';
       input.dataset.qtyListener = '1';
       ['input','change','blur'].forEach(function(ev){
         input.addEventListener(ev, function(){
-          validateAndHighlightQty(input);
+          validateAndHighlightQty(input, false);
           updateIncreaseBtnState(input);
           syncOtherQtyInputs(input);
         });
       });
       input.addEventListener('keypress', function(e){
         if(e.key === 'Enter'){
-          validateAndHighlightQty(input);
+          validateAndHighlightQty(input, false);
           updateIncreaseBtnState(input);
           syncOtherQtyInputs(input);
         }
       });
-      validateAndHighlightQty(input);
+      validateAndHighlightQty(input, true);
       updateIncreaseBtnState(input);
       syncOtherQtyInputs(input);
     });
