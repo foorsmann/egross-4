@@ -144,7 +144,7 @@
         "tab": {
           "type": "tab",
           "settings": {
-            "header": "Livrare & Rettur",
+            "header": "Livrare & Retur",
             "content": "<p>Informatii despre retur si livrare aici</p>",
             "content_page": "livrare-retur"
           }
