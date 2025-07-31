@@ -41,7 +41,7 @@
 
   {%- if show_double_qty_btn -%}
     {%- assign min_qty = product.metafields.custom.minimum_quantity | default: 1 -%}
-    {%- assign label_template = settings.double_qty_btn_label | default: 'Add another {min_qty}' -%}
+    {%- assign label_template = block.settings.double_qty_btn_label | default: 'Add another {min_qty}' -%}
     {%- if label_template contains '{min_qty}' -%}
       {%- assign btn_label = label_template | replace: '{min_qty}', min_qty -%}
     {%- else -%}

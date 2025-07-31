@@ -9,7 +9,7 @@
 {% elsif item %}
   {% assign min_qty = item.product.metafields.custom.minimum_quantity | default: 1 %}
 {% endif %}
-{% assign label_template = settings.double_qty_btn_label | default: 'Add another {min_qty}' %}
+{% assign label_template = block.settings.double_qty_btn_label | default: 'Add another {min_qty}' %}
 {% if label_template contains '{min_qty}' %}
   {% assign btn_label = label_template | replace: '{min_qty}', min_qty %}
 {% else %}
