@@ -11,7 +11,7 @@
   "current": {
     "th_key": "BR843 CPX421 IG3JJ 10ZVZ 4XC31 VTM45 KKD332",
     "favicon": "shopify://shop_images/Untitled_design_27.png",
-    "double_qty_btn_label": "dfnbdf {min_qty}",
+    "double_qty_btn_label": "Adauga inca {min_qty}",
     "container_width": 1200,
     "container_fluid_width": 1280,
     "container_fluid_offset": 65,
