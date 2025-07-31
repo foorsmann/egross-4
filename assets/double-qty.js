@@ -53,8 +53,6 @@
   window.validateAndHighlightQty = validateAndHighlightQty;
 
 var BUTTON_CLASS = 'double-qty-btn';
-var LABEL_PREFIX = 'Adauga inca '; // Recomand cu diacritice, UX mai bun
-var LABEL_SUFFIX = '';
 
 
   function applyMinQty(){
@@ -208,15 +206,16 @@ var LABEL_SUFFIX = '';
 
   function initDoubleQtyButtons() {
     document.querySelectorAll('.' + BUTTON_CLASS).forEach(function(btn){
-      if (btn.dataset.doubleQtyActive) return;
-      btn.dataset.doubleQtyActive = '1';
-
       var input = findQtyInput(btn);
       if (!input) return;
       var min = parseInt(input.getAttribute('data-min-qty'), 10) || 1;
-      var label = LABEL_PREFIX + min + LABEL_SUFFIX;
+      var template = btn.getAttribute('data-label-template') || btn.textContent;
+      var label = template.replace('{min_qty}', min);
       btn.setAttribute('aria-label', label);
       btn.textContent = label;
+
+      if (btn.dataset.doubleQtyActive) return;
+      btn.dataset.doubleQtyActive = '1';
 
       function updateBtnState() {
         var max = input.max ? parseInt(input.max, 10) : 9999;
