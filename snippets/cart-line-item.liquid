@@ -143,7 +143,9 @@
       <div class="cart-item-unit-price text-sm">
         {{ item.final_price | money }}{{ 'cart.item.unit_price_suffix' | t }}
       </div>
-
+      <div class="cart-item-line-total-mobile text-sm">
+        {{ item.final_line_price | money }}
+      </div>
       {%- assign item_discounts = 'template ' | split: ' ' -%}
     {%- if item.line_level_discount_allocations != blank -%}
       {%- assign item_discounts = item.line_level_discount_allocations -%}
