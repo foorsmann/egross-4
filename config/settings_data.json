@@ -119,9 +119,9 @@
             "settings": {
               "show_divider": true,
               "show_phone_numb": true,
-              "show_email": true,
+              "show_email": false,
               "show_social_links": false,
-              "show_stores_page": true,
+              "show_stores_page": false,
               "show_currency_switcher": false,
               "show_country_selector": false,
               "show_language_switcher": false,
@@ -290,10 +290,10 @@
       "annoucement": {
         "type": "annoucement",
         "settings": {
-          "show_announcement": false,
+          "show_announcement": true,
           "homepage_only": false,
-          "show_close": false,
-          "message": "<span class=\"font-medium\" style=\"font-size: 15px;\">CONCEPT PRO -> Tema DEMO. Toate produsele au titlu de prezentare. 👉 ACHIZITIONEAZA TEMA </span>",
+          "show_close": true,
+          "message": "<span class=\"font-medium\" style=\"font-size: 15px;\">Banner </span>",
           "message_link": "https://ecomschool.ro/tema-shopify-concept-pro",
           "show_divider": false
         }
