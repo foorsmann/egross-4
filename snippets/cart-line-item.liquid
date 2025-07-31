@@ -164,9 +164,12 @@
           <span data-unit-price-base-unit>{{- unit_price_base_unit -}}</span>
         </span>
       </div>
-    </div>
+      </div>
+      <div class="cart-item-unit-price text-sm">
+        {{ item.final_price | money }} / buc
+      </div>
 
-    {%- assign item_discounts = 'template ' | split: ' ' -%}
+      {%- assign item_discounts = 'template ' | split: ' ' -%}
     {%- if item.line_level_discount_allocations != blank -%}
       {%- assign item_discounts = item.line_level_discount_allocations -%}
     {%- endif -%}
@@ -266,6 +269,9 @@
           {{ item.original_line_price | money }}
         {%- endif -%}
       </span>
+    </div>
+    <div class="cart-item-line-total text-sm">
+      Total: {{ item.final_line_price | money }}
     </div>
   </div>
 </div>
