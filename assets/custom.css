@@ -17,3 +17,12 @@
 .prod__form-error:not(:empty) {
   display: block;
 }
+
+/* Enforce single-line truncation for product card titles */
+.sf__pcard-name {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
