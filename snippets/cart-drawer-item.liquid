@@ -57,14 +57,9 @@
       {%- endunless -%}
       <div class="scd-item__prices">
         {%- if item.original_price != item.final_price -%}
-          <div class="cart-drawer__discounted-prices">
-            <del class="scd-item__original-price text-color-sale-price">
-              {{- item.original_price | money -}}
-            </del>
-            <span class="scd-item__price scd-item__price--discount sf-currency text-color-regular-price">{{- item.final_price | money -}}</span>
-          </div>
-        {%- else -%}
-          <span class="scd-item__original-price scd-item__price sf-currency text-color-regular-price">{{- item.original_price | money -}}</span>
+          <del class="scd-item__original-price text-color-sale-price">
+            {{- item.original_price | money -}}
+          </del>
         {%- endif -%}
 
         <div {% unless item.unit_price_measurement %}class="hidden"{% endunless %}>
@@ -87,6 +82,13 @@
           <span data-unit-price-base-unit>{{- unit_price_base_unit -}}</span>
         </span>
         </div>
+      </div>
+      <div class="cart-item-unit-price text-sm">
+        {{ item.final_price | money }}{{ 'cart.item.unit_price_suffix' | t }}
+      </div>
+      <div class="cart-item-line-total text-sm">
+        <span class="visually-hidden">{{ 'cart.item.line_total' | t }}</span>
+        {{ item.final_line_price | money }}
       </div>
 
       {%- if item.discounts.size > 0 -%}
