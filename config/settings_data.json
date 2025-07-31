@@ -125,7 +125,7 @@
               "show_currency_switcher": false,
               "show_country_selector": false,
               "show_language_switcher": false,
-              "alert_message": "<span>Universul Jucariilor  |  <a class=\"sf__text-link  ml-1 underline\" href=\"#\">Vezi Produsele</a><span></span></span>"
+              "alert_message": "<span>Promotii  |  <a class=\"sf__text-link  ml-1 underline\" href=\"#\">Vezi Produsele</a><span></span></span>"
             }
           },
           "5b9aec5f-b955-4765-9a87-1962d613e909": {
@@ -290,7 +290,7 @@
       "annoucement": {
         "type": "annoucement",
         "settings": {
-          "show_announcement": true,
+          "show_announcement": false,
           "homepage_only": false,
           "show_close": true,
           "message": "<span class=\"font-medium\" style=\"font-size: 15px;\">Banner </span>",
