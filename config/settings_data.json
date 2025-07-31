@@ -221,7 +221,7 @@
           "7ebc2f78-975b-4a81-b874-103c3355a866": {
             "type": "menu",
             "settings": {
-              "menu": "",
+              "menu": "main-menu",
               "title": "",
               "width": "25%",
               "order_first": false,
