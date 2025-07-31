@@ -9,12 +9,19 @@
 {% elsif item %}
   {% assign min_qty = item.product.metafields.custom.minimum_quantity | default: 1 %}
 {% endif %}
+{% assign label_template = settings.double_qty_btn_label | default: 'Add another {min_qty}' %}
+{% if label_template contains '{min_qty}' %}
+  {% assign btn_label = label_template | replace: '{min_qty}', min_qty %}
+{% else %}
+  {% assign btn_label = label_template %}
+{% endif %}
 {% if min_qty > 1 or request.design_mode %}
 <button type="button"
         class="double-qty-btn sf__btn sf__btn-secondary"
-        aria-label="Adauga inca {{ min_qty }}"
-        data-double-qty>
-    Adauga inca {{ min_qty }}
+        aria-label="{{ btn_label }}"
+        data-double-qty
+        data-label-template="{{ label_template }}">
+    {{ btn_label }}
 </button>
 {% endif %}
 
