@@ -88,6 +88,12 @@
         </span>
         </div>
       </div>
+      <div class="cart-item-unit-price text-sm">
+        {{ item.final_price | money }} / buc
+      </div>
+      <div class="cart-item-line-total text-sm">
+        Total: {{ item.final_line_price | money }}
+      </div>
 
       {%- if item.discounts.size > 0 -%}
         <ul class="scd-item__discounts flex" role="list">
