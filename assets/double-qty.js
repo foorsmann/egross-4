@@ -20,6 +20,11 @@
   }
 
   function validateAndHighlightQty(input){
+    console.log('[validateAndHighlightQty] before', {
+      id: input.dataset?.id,
+      value: input.value,
+      input
+    });
     var step = parseInt(input.getAttribute('data-min-qty'), 10) || parseInt(input.step,10) || 1;
     var max = input.max ? parseInt(input.max, 10) : Infinity;
     var val = parseInt(input.value, 10);
@@ -27,17 +32,24 @@
     val = clampAndSnap(val, step, 1, max, false);
     input.value = val;
     if(val >= max){
+      console.log('[validateAndHighlightQty] input at max, coloring red', {id: input.dataset?.id, val});
       input.classList.add('text-red-600');
       input.style.color = '#e3342f';
     }else{
       input.classList.remove('text-red-600');
       input.style.color = '';
     }
+    console.log('[validateAndHighlightQty] after', {id: input.dataset?.id, value: input.value});
     return val;
   }
 
   // Actualizează starea butoanelor +/- în funcţie de valoarea curentă
   function updateQtyButtonsState(input){
+    console.log('[updateQtyButtonsState] start', {
+      id: input.dataset?.id,
+      value: input.value,
+      input
+    });
     var container = input.closest('.quantity-input') || input.parentNode;
     if(!container) return;
     var plus = container.querySelector('[data-quantity-selector="increase"],[data-qty-change="inc"]');
@@ -54,7 +66,11 @@
       // minus devine inactiv când valoarea curentă este sub sau egală cu minQty
       // pentru a preveni scăderea sub limita minimă
       minus.disabled = val <= minQty;
+      if(minus.disabled){
+        console.log('[updateQtyButtonsState] minus disabled', {id: input.dataset?.id, val});
+      }
     }
+    console.log('[updateQtyButtonsState] end', {id: input.dataset?.id, plusDisabled: plus?.disabled, minusDisabled: minus?.disabled});
   }
 
   // păstrăm pentru compatibilitate cu codul existent

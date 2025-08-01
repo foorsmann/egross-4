@@ -536,6 +536,7 @@ Shopify.onCartUpdate = async function (cart) {
       if (open_drawer) {
         await Cart.renderNewCart();
         // Ensure drawer inputs reflect server-corrected quantities before showing
+        console.log('== All helpers reapplied on new inputs (onCartUpdate) ==');
         Cart.syncCartInputs?.();
         Cart.openCartDrawer();
       }
@@ -579,6 +580,7 @@ Shopify.onItemAdded = async function (line_item) {
       if (open_drawer) {
         await Cart.renderNewCart();
         // Ensure drawer inputs reflect server-corrected quantities before showing
+        console.log('== All helpers reapplied on new inputs (onItemAdded) ==');
         Cart.syncCartInputs?.();
         Cart.openCartDrawer();
         ConceptSGMTheme.Notification.show({
@@ -7035,6 +7037,7 @@ class Cart {
         sold_out_items_message
       } = cart_ConceptSGMStrings;
 
+      console.log('== Start changeItemQty ==', lineItem);
       try {
         const {
           id: key,
@@ -7042,6 +7045,7 @@ class Cart {
         } = lineItem;
         this.loading.start();
         const newCart = await this.changeCart(lineItem);
+        console.log('== AJAX response received ==', newCart);
         this.cart = newCart;
         const newItem = newCart.items.find(_ref2 => {
           let { key: _key } = _ref2;
@@ -7052,6 +7056,7 @@ class Cart {
         if (lineItemNodeInstant) {
           const instantInput = lineItemNodeInstant.querySelector(this.cartItemSelectors.qtyInput);
           if (instantInput && newItem) {
+            console.log('[changeItemQty] set input value before DOM replace', {id: key, value: newItem.quantity});
             instantInput.value = newItem.quantity;
             if (typeof validateAndHighlightQty === 'function') {
               validateAndHighlightQty(instantInput);
@@ -7062,7 +7067,9 @@ class Cart {
           }
         }
         const cartHTML = await this.fetchCartSection();
+        console.log('== Start update after AJAX ==');
         this.loading.finish(() => {
+          console.log('== Inputs replaced in DOM ==');
           this.renderNewCart(cartHTML);
           window.Shopify.onCartUpdate(newCart, false);
 
@@ -7084,6 +7091,7 @@ class Cart {
                 type: 'warning',
                 message: not_enough_item_message.replace('__inventory_quantity__', newItem.quantity)
               });
+              console.log('[changeItemQty] not enough stock warning', {id: key, serverQty: newItem.quantity});
               // Re-evaluăm culoarea și starea butoanelor după notificare
               const input = lineItemNode?.querySelector(this.cartItemSelectors.qtyInput);
               if (input) {
@@ -7132,10 +7140,12 @@ class Cart {
     // Synchronize quantity inputs with the latest cart data and reapply helpers
     _defineProperty(this, "syncCartInputs", () => {
       if (!this.cart) return;
+      console.log('== syncCartInputs ==');
       this.cart.items.forEach(item => {
         const node = this.domNodes.cartDrawerItems?.querySelector(`.scd-item[data-id="${item.key}"]`);
         const input = node?.querySelector(this.cartItemSelectors.qtyInput);
         if (input) {
+          console.log('[syncCartInputs] setting value', {id: item.key, quantity: item.quantity});
           input.value = item.quantity;
           if (typeof validateAndHighlightQty === 'function') {
             validateAndHighlightQty(input);
@@ -7148,6 +7158,7 @@ class Cart {
     });
 
     _defineProperty(this, "renderNewCart", async cartHTML => {
+      console.log('== renderNewCart called ==');
       if (!cartHTML) {
         cartHTML = await this.fetchCartSection();
       }
@@ -7176,6 +7187,7 @@ class Cart {
       this.domNodes = queryDomNodes(this.selectors);
       // After replacing DOM, update inputs so values and highlight stay in sync
       this.syncCartInputs?.();
+      console.log('== All helpers reapplied on new inputs ==');
     });
 
     _defineProperty(this, "refreshCart", async () => {
@@ -7444,6 +7456,7 @@ addEventDelegate({
   selector: this.cartItemSelectors.btn,
   handler: (e, btn) => {
     e.preventDefault();
+    console.log('[btn click] qty button', {id: btn.dataset.id, change: btn.dataset.qtyChange});
     const { qtyChange, id } = btn.dataset;
     const item = this.getCartItemByKey(id);
 
@@ -7451,10 +7464,14 @@ addEventDelegate({
       const input = btn.parentElement.querySelector(this.cartItemSelectors.qtyInput);
       if (!input) return;
 
+      console.log('[btn click] before adjust', {value: input.value});
+
       const before = input.value;
       if (typeof adjustQuantityHelper === 'function') {
         adjustQuantityHelper(input, qtyChange === 'dec' ? -1 : 1, before);
       }
+
+      console.log('[btn click] after adjust', {value: input.value});
 
       const quantity = parseInt(input.value, 10) || 1;
       this.changeItemQty({
@@ -7474,6 +7491,7 @@ addEventDelegate({
   selector: this.cartItemSelectors.qtyInput,
   handler: (e, input) => {
     e.preventDefault();
+    console.log('[change] qty input', {id: input.dataset.id, value: input.value});
     if (typeof validateAndHighlightQty === 'function') {
       validateAndHighlightQty(input);
     }
@@ -7481,6 +7499,7 @@ addEventDelegate({
       updateQtyButtonsState(input);
     }
     const { id } = input.dataset;
+    console.log('[change] sending changeItemQty', {id, value: input.value});
     const quantity = parseInt(input.value, 10) || 1;
     this.changeItemQty({
       id,
@@ -7494,6 +7513,7 @@ addEventDelegate({
   event: 'input',
   selector: this.cartItemSelectors.qtyInput,
   handler: (e, input) => {
+    console.log('[input] qty input', {id: input.dataset.id, value: input.value});
     if (typeof validateAndHighlightQty === 'function') {
       validateAndHighlightQty(input);
     }
@@ -8913,7 +8933,7 @@ _defineProperty(this, "updateQtyBtnStates", () => {
   const minusBtn = Array.isArray(quantityBtns)
     ? quantityBtns.find(b => b.dataset.quantitySelector === 'decrease' || b.name === 'minus')
     : null;
-  
+
   const step = Number(quantityInput.getAttribute('data-min-qty')) || Number(quantityInput.step) || 1;
   const minQty = step;
   let max = this.productData?.selected_variant?.inventory_quantity ?? Infinity;
@@ -8921,11 +8941,13 @@ _defineProperty(this, "updateQtyBtnStates", () => {
   if (!Number.isNaN(attrMax)) max = attrMax;
   let val = parseInt(quantityInput.value, 10);
   if (Number.isNaN(val)) val = 1;
+  console.log('[updateQtyBtnStates(product)]', {val, max, minQty});
   if (plusBtn) plusBtn.disabled = isFinite(max) && val >= max;
   if (minusBtn) {
     // minus button disabled when current value is at or below minQty,
     // regardless of manual input or button usage
     minusBtn.disabled = val <= minQty;
+    if (minusBtn.disabled) console.log('[updateQtyBtnStates(product)] minus disabled');
   }
 });
 
