@@ -7155,6 +7155,17 @@ class Cart {
           }
         }
       });
+      // After inputs are synchronized, run helpers on all fresh inputs to ensure
+      // highlight and button states are correct after DOM replacement
+      document.querySelectorAll('.scd-item__qty_input').forEach(input => {
+        console.log('[DrawerCart] found input after update', input.id, input.value, input);
+        if (typeof validateAndHighlightQty === 'function') {
+          validateAndHighlightQty(input);
+        }
+        if (typeof updateQtyButtonsState === 'function') {
+          updateQtyButtonsState(input);
+        }
+      });
     });
 
     _defineProperty(this, "renderNewCart", async cartHTML => {
@@ -7188,6 +7199,16 @@ class Cart {
       // After replacing DOM, update inputs so values and highlight stay in sync
       this.syncCartInputs?.();
       console.log('== All helpers reapplied on new inputs ==');
+      // Log and validate all quantity inputs after the drawer/cart DOM is fully refreshed
+      document.querySelectorAll('.scd-item__qty_input').forEach(input => {
+        console.log('[DrawerCart] found input after update', input.id, input.value, input);
+        if (typeof validateAndHighlightQty === 'function') {
+          validateAndHighlightQty(input);
+        }
+        if (typeof updateQtyButtonsState === 'function') {
+          updateQtyButtonsState(input);
+        }
+      });
     });
 
     _defineProperty(this, "refreshCart", async () => {
