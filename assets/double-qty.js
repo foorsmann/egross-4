@@ -10,10 +10,10 @@
     return Math.floor((val - min) / step) * step + min;
   }
 
-  function clampAndSnap(val, step, min, max){
+  function clampAndSnap(val, step, min, max, snap){
     val = Math.min(val, max);
     if(val < min) val = min;
-    if(val !== max){
+    if(snap && val !== max){
       val = snapDown(val, step, min);
     }
     return val;
@@ -21,11 +21,10 @@
 
   function validateAndHighlightQty(input){
     var step = parseInt(input.getAttribute('data-min-qty'), 10) || parseInt(input.step,10) || 1;
-    var min = parseInt(input.min, 10) || step;
     var max = input.max ? parseInt(input.max, 10) : Infinity;
     var val = parseInt(input.value, 10);
-    val = isNaN(val) ? min : val;
-    val = clampAndSnap(val, step, min, max);
+    if(isNaN(val)) val = 1;
+    val = clampAndSnap(val, step, 1, max, false);
     input.value = val;
     if(val >= max){
       input.classList.add('text-red-600');
@@ -37,20 +36,33 @@
     return val;
   }
 
-  function updateIncreaseBtnState(input){
+  // Actualizează starea butoanelor +/- în funcţie de valoarea curentă
+  function updateQtyButtonsState(input){
     var container = input.closest('.quantity-input') || input.parentNode;
     if(!container) return;
     var plus = container.querySelector('[data-quantity-selector="increase"],[data-qty-change="inc"]');
-    if(!plus) return;
+    var minus = container.querySelector('[data-quantity-selector="decrease"],[data-qty-change="dec"]');
+
     var max = input.max ? parseInt(input.max, 10) : Infinity;
     var step = parseInt(input.getAttribute('data-min-qty'), 10) || parseInt(input.step,10) || 1;
-    var min = parseInt(input.min, 10) || step;
+    var minQty = step;
     var val = parseInt(input.value, 10);
-    if(isNaN(val)) val = min;
-    plus.disabled = isFinite(max) && val >= max;
+    if(isNaN(val)) val = 1;
+
+    if(plus) plus.disabled = isFinite(max) && val >= max;
+    if(minus){
+      // minus devine inactiv când valoarea curentă este sub sau egală cu minQty
+      minus.disabled = val <= minQty;
+    }
   }
 
+  // păstrăm pentru compatibilitate cu codul existent
+  var updateIncreaseBtnState = updateQtyButtonsState;
+
   window.validateAndHighlightQty = validateAndHighlightQty;
+  // expunem helperii pentru a putea fi folosiți și în cart/drawer
+  window.updateQtyButtonsState = updateQtyButtonsState;
+  window.adjustQuantityHelper = adjustQuantity;
 
 var BUTTON_CLASS = 'double-qty-btn';
 
@@ -59,12 +71,17 @@ var BUTTON_CLASS = 'double-qty-btn';
     document.querySelectorAll('[data-min-qty]').forEach(function(input){
       var min = parseInt(input.getAttribute('data-min-qty'), 10);
       if(min && min > 0){
-        input.min = min;
+        if(input.closest('.scd-item') || input.closest('[data-cart-item]')){
+          input.min = min;
+        }else{
+          input.min = 1; // allow manual values down to 1 on product page
+        }
         input.step = min;
         if(parseInt(input.value,10) < min){
           input.value = min;
         }
         validateAndHighlightQty(input);
+        updateQtyButtonsState(input);
       }
     });
   }
@@ -78,7 +95,7 @@ var BUTTON_CLASS = 'double-qty-btn';
       if(input.value !== value){
         input.value = value;
         validateAndHighlightQty(input);
-        updateIncreaseBtnState(input);
+        updateQtyButtonsState(input);
         input.dispatchEvent(new Event('input', { bubbles: true }));
         input.dispatchEvent(new Event('change', { bubbles: true }));
       }
@@ -93,19 +110,19 @@ var BUTTON_CLASS = 'double-qty-btn';
       ['input','change','blur'].forEach(function(ev){
         input.addEventListener(ev, function(){
           validateAndHighlightQty(input);
-          updateIncreaseBtnState(input);
+          updateQtyButtonsState(input);
           syncOtherQtyInputs(input);
         });
       });
       input.addEventListener('keypress', function(e){
         if(e.key === 'Enter'){
           validateAndHighlightQty(input);
-          updateIncreaseBtnState(input);
+          updateQtyButtonsState(input);
           syncOtherQtyInputs(input);
         }
       });
       validateAndHighlightQty(input);
-      updateIncreaseBtnState(input);
+      updateQtyButtonsState(input);
       syncOtherQtyInputs(input);
     });
   }
@@ -127,58 +144,53 @@ var BUTTON_CLASS = 'double-qty-btn';
       if(input){
         var before = input.value;
         setTimeout(function(){
-          if(input.value === before){
-            var action = btn.getAttribute('data-quantity-selector') || btn.getAttribute('data-qty-change');
-            if(action === 'increase' || action === 'inc'){
-              adjustQuantity(input, 1);
-            }else if(action === 'decrease' || action === 'dec'){
-              adjustQuantity(input, -1);
-            }else{
-              validateAndHighlightQty(input);
-            }
-            updateIncreaseBtnState(input);
+          var action = btn.getAttribute('data-quantity-selector') || btn.getAttribute('data-qty-change');
+          if(action === 'increase' || action === 'inc'){
+            adjustQuantity(input, 1, before);
+          }else if(action === 'decrease' || action === 'dec'){
+            adjustQuantity(input, -1, before);
           }else{
             validateAndHighlightQty(input);
-            updateIncreaseBtnState(input);
+            updateQtyButtonsState(input);
           }
         }, 0);
       }
     }, true);
   }
 
-  function adjustQuantity(input, delta){
+  function adjustQuantity(input, delta, baseVal){
     var step = parseInt(input.getAttribute('data-min-qty'), 10) || 1;
-    var min = parseInt(input.min, 10) || step;
     var max = input.max ? parseInt(input.max, 10) : Infinity;
-    var val = parseInt(input.value, 10);
-    if(isNaN(val)) val = min;
+    var minQty = step; // valoarea minimă configurată
+    var val = baseVal !== undefined ? parseInt(baseVal,10) : parseInt(input.value, 10);
+    if(isNaN(val)) val = 1;
 
-    // Increment: dacă suntem deja la maxim sau peste, doar validează și colorează, nu schimba valoarea!
+    // Dacă suntem la maxim, doar validează și colorează
     if(delta > 0 && isFinite(max) && val >= max){
       validateAndHighlightQty(input);
-      updateIncreaseBtnState(input);
+      updateQtyButtonsState(input);
       return;
     }
 
     if(delta < 0){
-      // Pentru decremente, când suntem la max și nu e multiplu, snapDown pe max!
-      if(isFinite(max) && val >= max){
-        val = snapDown(max, step, min);
-      }else if(val % step !== 0){
-        val = snapDown(val, step, min);
+      // Snap la multiplu inferior plecând de la minQty
+      if((val - minQty) % step !== 0){
+        val = Math.floor((val - minQty) / step) * step + minQty;
       }else{
         val -= step;
       }
-      if(val < min) val = min;
+      if(val < minQty) val = minQty;
     }else{
-      if(val % step !== 0){
-        val = snapDown(val, step, min);
+      // Snap la multiplu superior plecând de la minQty
+      if((val - minQty) % step !== 0){
+        val = Math.ceil((val - minQty) / step) * step + minQty;
+      }else{
+        val += step;
       }
-      val += step;
       if(val > max) val = max;
     }
 
-    var newVal = clampAndSnap(val, step, min, max);
+    var newVal = clampAndSnap(val, step, 1, max);
     input.value = newVal;
     if(newVal >= max){
       input.classList.add('text-red-600');
@@ -189,7 +201,7 @@ var BUTTON_CLASS = 'double-qty-btn';
     }
     input.dispatchEvent(new Event('input', { bubbles: true }));
     input.dispatchEvent(new Event('change', { bubbles: true }));
-    updateIncreaseBtnState(input);
+    updateQtyButtonsState(input);
   }
 
   function findQtyInput(btn) {
@@ -222,7 +234,7 @@ var BUTTON_CLASS = 'double-qty-btn';
         var val = parseInt(input.value, 10) || 1;
         btn.disabled = val >= max;
         validateAndHighlightQty(input);
-        updateIncreaseBtnState(input);
+        updateQtyButtonsState(input);
       }
       updateBtnState();
       input.addEventListener('input', updateBtnState);
