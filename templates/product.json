@@ -175,7 +175,7 @@
         "text_align": "left",
         "limit": 8,
         "columns": 4,
-        "column_gap": 30,
+        "column_gap": 10,
         "enable_slider": true
       }
     },
