@@ -7068,6 +7068,16 @@ class Cart {
                 type: 'warning',
                 message: not_enough_item_message.replace('__inventory_quantity__', newItem.quantity)
               });
+              // Re-evaluăm culoarea și starea butoanelor după notificare
+              const input = lineItemNode?.querySelector(this.cartItemSelectors.qtyInput);
+              if (input) {
+                if (typeof validateAndHighlightQty === 'function') {
+                  validateAndHighlightQty(input);
+                }
+                if (typeof updateQtyButtonsState === 'function') {
+                  updateQtyButtonsState(input);
+                }
+              }
             }
           }
         });
@@ -7115,6 +7125,19 @@ class Cart {
       currentCartBody.replaceWith(newCartBody);
       currentCartSummary.replaceWith(newCartSummary);
       this.domNodes = queryDomNodes(this.selectors);
+      if (typeof updateQtyButtonsState === 'function' || typeof validateAndHighlightQty === 'function') {
+        this.domNodes.cartDrawer
+          ?.querySelectorAll(this.cartItemSelectors.qtyInput)
+          .forEach(input => {
+            if (typeof updateQtyButtonsState === 'function') {
+              updateQtyButtonsState(input);
+            }
+            // ensure max value stays highlighted after cart refresh
+            if (typeof validateAndHighlightQty === 'function') {
+              validateAndHighlightQty(input);
+            }
+          });
+      }
     });
 
     _defineProperty(this, "refreshCart", async () => {
@@ -7425,6 +7448,20 @@ addEventDelegate({
       id,
       quantity
     });
+  }
+});
+
+addEventDelegate({
+  context: this.domNodes.cartDrawer,
+  event: 'input',
+  selector: this.cartItemSelectors.qtyInput,
+  handler: (e, input) => {
+    if (typeof validateAndHighlightQty === 'function') {
+      validateAndHighlightQty(input);
+    }
+    if (typeof updateQtyButtonsState === 'function') {
+      updateQtyButtonsState(input);
+    }
   }
 });
 
@@ -8847,7 +8884,11 @@ _defineProperty(this, "updateQtyBtnStates", () => {
   let val = parseInt(quantityInput.value, 10);
   if (Number.isNaN(val)) val = 1;
   if (plusBtn) plusBtn.disabled = isFinite(max) && val >= max;
-  if (minusBtn) minusBtn.disabled = val <= minQty && ((val - minQty) % step === 0);
+  if (minusBtn) {
+    // minus button disabled when current value is at or below minQty,
+    // regardless of manual input or button usage
+    minusBtn.disabled = val <= minQty;
+  }
 });
 
 
