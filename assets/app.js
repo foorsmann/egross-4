@@ -7389,40 +7389,24 @@ addEventDelegate({
     if (item) {
       const input = btn.parentElement.querySelector(this.cartItemSelectors.qtyInput);
       const step = Number(input.getAttribute('data-min-qty')) || Number(input.step) || 1;
-      const min = Number(input.min) || step;
       const max = Number(input.max) || Infinity;
-      let quantity = Number(input.value) || min;
-
-      // Snap quantity down to closest allowed multiple
-      const snapDown = v => {
-        if (!isFinite(v)) return min;
-        if (v < min) return min;
-        if (v > max) v = max;
-        if (v === max && max % step !== 0) {
-          return Math.floor((max - min) / step) * step + min;
-        }
-        if (v % step !== 0) {
-          return Math.floor((v - min) / step) * step + min;
-        }
-        return v;
-      };
+      let quantity = Number(input.value) || 1;
 
       if (qtyChange === 'dec') {
-        // If we're at or above max and max isn't a perfect multiple, snap down
-        if (quantity >= max && max % step !== 0) {
-          quantity = snapDown(max);
-        } else if (quantity % step !== 0) {
-          quantity = snapDown(quantity);
-        } else {
-          quantity -= step;
-        }
-        if (quantity < min) quantity = min;
-      } else {
-        // increment
         if (quantity % step !== 0) {
-          quantity = snapDown(quantity);
+          quantity = Math.floor(quantity / step) * step;
+        } else {
+          quantity = quantity - step;
         }
-        quantity += step;
+        if (quantity < 1) quantity = 1;
+      } else {
+        if (isFinite(max) && quantity >= max) {
+          quantity = max;
+        } else if (quantity % step !== 0) {
+          quantity = Math.ceil(quantity / step) * step;
+        } else {
+          quantity = quantity + step;
+        }
         if (quantity > max) quantity = max;
       }
 
@@ -7453,16 +7437,10 @@ addEventDelegate({
   handler: (e, input) => {
     e.preventDefault();
     const step = Number(input.getAttribute('data-min-qty')) || Number(input.step) || 1;
-    const min = Number(input.min) || step;
     const max = Number(input.max) || Infinity;
-    let quantity = Number(input.value) || min;
-
-    // Snap manual input to the closest allowed value
+    let quantity = Number(input.value) || 1;
+    if (quantity < 1) quantity = 1;
     if (quantity > max) quantity = max;
-    if (quantity !== max) {
-      quantity = Math.floor((quantity - min) / step) * step + min;
-      if (quantity < min) quantity = min;
-    }
 
     input.value = quantity;
     if (quantity >= max) {
@@ -8855,24 +8833,16 @@ _defineProperty(this, "unsubscribeEvents", () => {
 _defineProperty(this, "handleQtyInputChange", e => {
   const input = e.target;
   const step = Number(input.getAttribute('data-min-qty')) || Number(input.step) || 1;
-  const min = Number(input.min) || step;
+  const min = 1;
 
   // Folosește întâi input.max dacă există, altfel variant.inventory_quantity
   let max = this.productData?.selected_variant?.inventory_quantity ?? Infinity;
   const attrMax = parseFloat(input.max);
   if (!Number.isNaN(attrMax)) max = attrMax;
 
-  let val = Number(input.value) || min;
-
-  const snapDown = v => {
-    if (!isFinite(v)) return min;
-    if (v < min) return min;
-    return Math.floor((v - min) / step) * step + min;
-  };
-
+  let val = Number(input.value) || step;
+  if (val < 1) val = 1;
   if (val > max) val = max;
-  if (val !== max) val = snapDown(val);
-  if (val < min) val = min;
   input.value = val;
 
   // Colorare roșie la maxim
@@ -8897,7 +8867,7 @@ _defineProperty(this, "updateIncreaseBtnState", () => {
   if (!plusBtn) return;
 
   const step = Number(quantityInput.getAttribute('data-min-qty')) || Number(quantityInput.step) || 1;
-  const min = Number(quantityInput.min) || step;
+  const min = 1;
   let max = this.productData?.selected_variant?.inventory_quantity ?? Infinity;
   const attrMax = parseFloat(quantityInput.max);
   if (!Number.isNaN(attrMax)) max = attrMax;
@@ -8911,7 +8881,7 @@ _defineProperty(this, "handleQtyBtnClick", (e, btn) => {
   const { quantitySelector } = btn.dataset;
   const { quantityInput } = this.domNodes;
   const step = Number(quantityInput.getAttribute('data-min-qty')) || Number(quantityInput.step) || 1;
-  const min = Number(quantityInput.min) || step;
+  const min = 1;
 
   // Folosește întâi input.max dacă există, altfel variant.inventory_quantity
   let max = this.productData?.selected_variant?.inventory_quantity ?? Infinity;
@@ -8919,11 +8889,10 @@ _defineProperty(this, "handleQtyBtnClick", (e, btn) => {
   if (!Number.isNaN(attrMax)) max = attrMax;
 
   let currentQty = parseInt(quantityInput.value, 10);
-  if (Number.isNaN(currentQty)) currentQty = min;
+  if (Number.isNaN(currentQty)) currentQty = 1;
   let newQty = currentQty;
 
   if (quantitySelector !== 'decrease' && isFinite(max) && currentQty >= max) {
-    // Dacă e deja la maxim, doar colorează și validează fără a incrementa mai mult
     if (typeof validateAndHighlightQty === 'function') {
       validateAndHighlightQty(quantityInput);
     } else {
@@ -8934,27 +8903,19 @@ _defineProperty(this, "handleQtyBtnClick", (e, btn) => {
     return;
   }
 
-  // Helper pentru a ajusta la cel mai apropiat multiplu valid în jos
-  const snapDown = v => {
-    if (!isFinite(v)) return min;
-    if (v < min) return min;
-    return Math.floor((v - min) / step) * step + min;
-  };
-
   if (quantitySelector === 'decrease') {
-    if (currentQty >= max && max % step !== 0) {
-      newQty = snapDown(max);
-    } else if (currentQty % step !== 0) {
-      newQty = snapDown(currentQty);
+    if (currentQty % step !== 0) {
+      newQty = Math.floor(currentQty / step) * step;
     } else {
       newQty = currentQty - step;
     }
-    if (newQty < min) newQty = min;
+    if (newQty < 1) newQty = 1;
   } else {
     if (currentQty % step !== 0) {
-      newQty = snapDown(currentQty);
+      newQty = Math.ceil(currentQty / step) * step;
+    } else {
+      newQty = currentQty + step;
     }
-    newQty = newQty + step;
     if (newQty > max) newQty = max;
   }
 

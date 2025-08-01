@@ -11,20 +11,18 @@
   }
 
   function clampAndSnap(val, step, min, max){
+    // Limits value between min and max without snapping to step
     val = Math.min(val, max);
     if(val < min) val = min;
-    if(val !== max){
-      val = snapDown(val, step, min);
-    }
     return val;
   }
 
   function validateAndHighlightQty(input){
     var step = parseInt(input.getAttribute('data-min-qty'), 10) || parseInt(input.step,10) || 1;
-    var min = parseInt(input.min, 10) || step;
+    var min = 1;
     var max = input.max ? parseInt(input.max, 10) : Infinity;
     var val = parseInt(input.value, 10);
-    val = isNaN(val) ? min : val;
+    if(isNaN(val)) val = step;
     val = clampAndSnap(val, step, min, max);
     input.value = val;
     if(val >= max){
@@ -59,7 +57,7 @@ var BUTTON_CLASS = 'double-qty-btn';
     document.querySelectorAll('[data-min-qty]').forEach(function(input){
       var min = parseInt(input.getAttribute('data-min-qty'), 10);
       if(min && min > 0){
-        input.min = min;
+        input.min = 1; // allow manual values down to 1
         input.step = min;
         if(parseInt(input.value,10) < min){
           input.value = min;
@@ -148,10 +146,9 @@ var BUTTON_CLASS = 'double-qty-btn';
 
   function adjustQuantity(input, delta){
     var step = parseInt(input.getAttribute('data-min-qty'), 10) || 1;
-    var min = parseInt(input.min, 10) || step;
     var max = input.max ? parseInt(input.max, 10) : Infinity;
     var val = parseInt(input.value, 10);
-    if(isNaN(val)) val = min;
+    if(isNaN(val)) val = 1;
 
     // Increment: dacă suntem deja la maxim sau peste, doar validează și colorează, nu schimba valoarea!
     if(delta > 0 && isFinite(max) && val >= max){
@@ -161,24 +158,22 @@ var BUTTON_CLASS = 'double-qty-btn';
     }
 
     if(delta < 0){
-      // Pentru decremente, când suntem la max și nu e multiplu, snapDown pe max!
-      if(isFinite(max) && val >= max){
-        val = snapDown(max, step, min);
-      }else if(val % step !== 0){
-        val = snapDown(val, step, min);
+      if(val % step !== 0){
+        val = Math.floor(val / step) * step;
       }else{
         val -= step;
       }
-      if(val < min) val = min;
+      if(val < 1) val = 1;
     }else{
       if(val % step !== 0){
-        val = snapDown(val, step, min);
+        val = Math.ceil(val / step) * step;
+      }else{
+        val += step;
       }
-      val += step;
       if(val > max) val = max;
     }
 
-    var newVal = clampAndSnap(val, step, min, max);
+    var newVal = clampAndSnap(val, step, 1, max);
     input.value = newVal;
     if(newVal >= max){
       input.classList.add('text-red-600');
