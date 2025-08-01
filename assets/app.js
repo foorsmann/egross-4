@@ -535,6 +535,8 @@ Shopify.onCartUpdate = async function (cart) {
 
       if (open_drawer) {
         await Cart.renderNewCart();
+        // Ensure drawer inputs reflect server-corrected quantities before showing
+        Cart.syncCartInputs?.();
         Cart.openCartDrawer();
       }
 
@@ -576,6 +578,8 @@ Shopify.onItemAdded = async function (line_item) {
 
       if (open_drawer) {
         await Cart.renderNewCart();
+        // Ensure drawer inputs reflect server-corrected quantities before showing
+        Cart.syncCartInputs?.();
         Cart.openCartDrawer();
         ConceptSGMTheme.Notification.show({
           target: Cart.domNodes?.cartDrawerItems,
@@ -7125,6 +7129,24 @@ class Cart {
       return lineItemNode;
     });
 
+    // Synchronize quantity inputs with the latest cart data and reapply helpers
+    _defineProperty(this, "syncCartInputs", () => {
+      if (!this.cart) return;
+      this.cart.items.forEach(item => {
+        const node = this.domNodes.cartDrawerItems?.querySelector(`.scd-item[data-id="${item.key}"]`);
+        const input = node?.querySelector(this.cartItemSelectors.qtyInput);
+        if (input) {
+          input.value = item.quantity;
+          if (typeof validateAndHighlightQty === 'function') {
+            validateAndHighlightQty(input);
+          }
+          if (typeof updateQtyButtonsState === 'function') {
+            updateQtyButtonsState(input);
+          }
+        }
+      });
+    });
+
     _defineProperty(this, "renderNewCart", async cartHTML => {
       if (!cartHTML) {
         cartHTML = await this.fetchCartSection();
@@ -7152,6 +7174,8 @@ class Cart {
       currentCartBody.replaceWith(newCartBody);
       currentCartSummary.replaceWith(newCartSummary);
       this.domNodes = queryDomNodes(this.selectors);
+      // After replacing DOM, update inputs so values and highlight stay in sync
+      this.syncCartInputs?.();
     });
 
     _defineProperty(this, "refreshCart", async () => {
