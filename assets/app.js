@@ -7068,6 +7068,16 @@ class Cart {
                 type: 'warning',
                 message: not_enough_item_message.replace('__inventory_quantity__', newItem.quantity)
               });
+              // Re-evaluăm culoarea și starea butoanelor după notificare
+              const input = lineItemNode?.querySelector(this.cartItemSelectors.qtyInput);
+              if (input) {
+                if (typeof validateAndHighlightQty === 'function') {
+                  validateAndHighlightQty(input);
+                }
+                if (typeof updateQtyButtonsState === 'function') {
+                  updateQtyButtonsState(input);
+                }
+              }
             }
           }
         });
