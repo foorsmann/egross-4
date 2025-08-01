@@ -36,35 +36,36 @@
     return val;
   }
 
-  // Actualizează starea butoanelor +/- în funcţie de valoarea curentă
-  function updateQtyButtonsState(input){
-    var container = input.closest('.quantity-input') || input.parentNode;
-    if(!container) return;
-    var plus = container.querySelector('[data-quantity-selector="increase"],[data-qty-change="inc"]');
-    var minus = container.querySelector('[data-quantity-selector="decrease"],[data-qty-change="dec"]');
+// Actualizează starea butoanelor +/- în funcţie de valoarea curentă
+function updateQtyButtonsState(input){
+  var container = input.closest('.quantity-input') || input.parentNode;
+  if(!container) return;
+  var plus = container.querySelector('[data-quantity-selector="increase"],[data-qty-change="inc"]');
+  var minus = container.querySelector('[data-quantity-selector="decrease"],[data-qty-change="dec"]');
 
-    var max = input.max ? parseInt(input.max, 10) : Infinity;
-    var step = parseInt(input.getAttribute('data-min-qty'), 10) || parseInt(input.step,10) || 1;
-    var minQty = step;
-    var val = parseInt(input.value, 10);
-    if(isNaN(val)) val = 1;
+  var max = input.max ? parseInt(input.max, 10) : Infinity;
+  var step = parseInt(input.getAttribute('data-min-qty'), 10) || parseInt(input.step,10) || 1;
+  var minQty = step;
+  var val = parseInt(input.value, 10);
+  if(isNaN(val)) val = 1;
 
-    if(plus) plus.disabled = isFinite(max) && val >= max;
-    if(minus){
-      // minus devine inactiv când valoarea curentă este sub sau egală cu minQty
-      minus.disabled = val <= minQty;
-    }
+  if(plus) plus.disabled = isFinite(max) && val >= max;
+  if(minus) {
+    // minus devine inactiv când valoarea curentă este sub sau egală cu minQty
+    minus.disabled = val <= minQty;
   }
+}
 
-  // păstrăm pentru compatibilitate cu codul existent
-  var updateIncreaseBtnState = updateQtyButtonsState;
+// păstrăm pentru compatibilitate cu codul existent
+var updateIncreaseBtnState = updateQtyButtonsState;
 
-  window.validateAndHighlightQty = validateAndHighlightQty;
-  // expunem helperii pentru a putea fi folosiți și în cart/drawer
-  window.updateQtyButtonsState = updateQtyButtonsState;
-  window.adjustQuantityHelper = adjustQuantity;
+window.validateAndHighlightQty = validateAndHighlightQty;
+// expunem helperii pentru a putea fi folosiți și în cart/drawer
+window.updateQtyButtonsState = updateQtyButtonsState;
+window.adjustQuantityHelper = adjustQuantity;
 
 var BUTTON_CLASS = 'double-qty-btn';
+
 
 
   function applyMinQty(){

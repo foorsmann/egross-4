@@ -8825,10 +8825,6 @@ _defineProperty(this, "handleQtyInputChange", e => {
     input.style.color = '';
   }
 
-  product_ConceptSGMEvents.emit(`${this.productData.id}__QUANTITY_CHANGE`, val, this);
-  this.updateQtyBtnStates();
-});
-
 _defineProperty(this, "updateQtyBtnStates", () => {
   const { quantityInput, quantityBtns } = this.domNodes;
   if (!quantityInput || !quantityBtns) return;
@@ -8847,11 +8843,9 @@ _defineProperty(this, "updateQtyBtnStates", () => {
   let val = parseInt(quantityInput.value, 10);
   if (Number.isNaN(val)) val = 1;
   if (plusBtn) plusBtn.disabled = isFinite(max) && val >= max;
-  if (minusBtn) {
-    // minus trebuie dezactivat când valoarea este egală sau sub minQty
-    minusBtn.disabled = val <= minQty;
-  }
+  if (minusBtn) minusBtn.disabled = val <= minQty;
 });
+
 
 
 _defineProperty(this, "handleQtyBtnClick", (e, btn) => {
