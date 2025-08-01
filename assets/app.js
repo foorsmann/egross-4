@@ -7115,6 +7115,11 @@ class Cart {
       currentCartBody.replaceWith(newCartBody);
       currentCartSummary.replaceWith(newCartSummary);
       this.domNodes = queryDomNodes(this.selectors);
+      if (typeof updateQtyButtonsState === 'function') {
+        this.domNodes.cartDrawer
+          ?.querySelectorAll(this.cartItemSelectors.qtyInput)
+          .forEach(input => updateQtyButtonsState(input));
+      }
     });
 
     _defineProperty(this, "refreshCart", async () => {
@@ -7425,6 +7430,20 @@ addEventDelegate({
       id,
       quantity
     });
+  }
+});
+
+addEventDelegate({
+  context: this.domNodes.cartDrawer,
+  event: 'input',
+  selector: this.cartItemSelectors.qtyInput,
+  handler: (e, input) => {
+    if (typeof validateAndHighlightQty === 'function') {
+      validateAndHighlightQty(input);
+    }
+    if (typeof updateQtyButtonsState === 'function') {
+      updateQtyButtonsState(input);
+    }
   }
 });
 
