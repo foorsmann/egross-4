@@ -179,8 +179,9 @@
           "31481022-f698-4968-bf06-3c24f36b09e7",
           "ea723308-92c0-42ae-a45d-aede426d8cdd"
         ],
+        "custom_css": [],
         "settings": {
-          "header_design": "both-center",
+          "header_design": "logo-left-menu-center",
           "container": "container",
           "header_sticky": true,
           "transparent_on_top": false,
