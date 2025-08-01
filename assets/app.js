@@ -7388,53 +7388,14 @@ addEventDelegate({
 
     if (item) {
       const input = btn.parentElement.querySelector(this.cartItemSelectors.qtyInput);
-      const step = Number(input.getAttribute('data-min-qty')) || Number(input.step) || 1;
-      const min = Number(input.min) || step;
-      const max = Number(input.max) || Infinity;
-      let quantity = Number(input.value) || min;
+      if (!input) return;
 
-      // Snap quantity down to closest allowed multiple
-      const snapDown = v => {
-        if (!isFinite(v)) return min;
-        if (v < min) return min;
-        if (v > max) v = max;
-        if (v === max && max % step !== 0) {
-          return Math.floor((max - min) / step) * step + min;
-        }
-        if (v % step !== 0) {
-          return Math.floor((v - min) / step) * step + min;
-        }
-        return v;
-      };
-
-      if (qtyChange === 'dec') {
-        // If we're at or above max and max isn't a perfect multiple, snap down
-        if (quantity >= max && max % step !== 0) {
-          quantity = snapDown(max);
-        } else if (quantity % step !== 0) {
-          quantity = snapDown(quantity);
-        } else {
-          quantity -= step;
-        }
-        if (quantity < min) quantity = min;
-      } else {
-        // increment
-        if (quantity % step !== 0) {
-          quantity = snapDown(quantity);
-        }
-        quantity += step;
-        if (quantity > max) quantity = max;
+      const before = input.value;
+      if (typeof adjustQuantityHelper === 'function') {
+        adjustQuantityHelper(input, qtyChange === 'dec' ? -1 : 1, before);
       }
 
-      input.value = quantity;
-      if (quantity >= max) {
-        input.classList.add('text-red-600');
-        input.style.color = '#e3342f';
-      } else {
-        input.classList.remove('text-red-600');
-        input.style.color = '';
-      }
-
+      const quantity = parseInt(input.value, 10) || 1;
       this.changeItemQty({
         id,
         quantity
@@ -7452,27 +7413,14 @@ addEventDelegate({
   selector: this.cartItemSelectors.qtyInput,
   handler: (e, input) => {
     e.preventDefault();
-    const step = Number(input.getAttribute('data-min-qty')) || Number(input.step) || 1;
-    const min = Number(input.min) || step;
-    const max = Number(input.max) || Infinity;
-    let quantity = Number(input.value) || min;
-
-    // Snap manual input to the closest allowed value
-    if (quantity > max) quantity = max;
-    if (quantity !== max) {
-      quantity = Math.floor((quantity - min) / step) * step + min;
-      if (quantity < min) quantity = min;
+    if (typeof validateAndHighlightQty === 'function') {
+      validateAndHighlightQty(input);
     }
-
-    input.value = quantity;
-    if (quantity >= max) {
-      input.classList.add('text-red-600');
-      input.style.color = '#e3342f';
-    } else {
-      input.classList.remove('text-red-600');
-      input.style.color = '';
+    if (typeof updateQtyButtonsState === 'function') {
+      updateQtyButtonsState(input);
     }
     const { id } = input.dataset;
+    const quantity = parseInt(input.value, 10) || 1;
     this.changeItemQty({
       id,
       quantity
@@ -8855,24 +8803,17 @@ _defineProperty(this, "unsubscribeEvents", () => {
 _defineProperty(this, "handleQtyInputChange", e => {
   const input = e.target;
   const step = Number(input.getAttribute('data-min-qty')) || Number(input.step) || 1;
-  const min = Number(input.min) || step;
+  const min = 1;
 
   // Folosește întâi input.max dacă există, altfel variant.inventory_quantity
   let max = this.productData?.selected_variant?.inventory_quantity ?? Infinity;
   const attrMax = parseFloat(input.max);
   if (!Number.isNaN(attrMax)) max = attrMax;
 
-  let val = Number(input.value) || min;
-
-  const snapDown = v => {
-    if (!isFinite(v)) return min;
-    if (v < min) return min;
-    return Math.floor((v - min) / step) * step + min;
-  };
-
+  // Valoarea introdusă manual este permisă liber între 1 și max
+  let val = Number(input.value);
+  if (Number.isNaN(val) || val < 1) val = 1;
   if (val > max) val = max;
-  if (val !== max) val = snapDown(val);
-  if (val < min) val = min;
   input.value = val;
 
   // Colorare roșie la maxim
@@ -8885,25 +8826,28 @@ _defineProperty(this, "handleQtyInputChange", e => {
   }
 
   product_ConceptSGMEvents.emit(`${this.productData.id}__QUANTITY_CHANGE`, val, this);
-  this.updateIncreaseBtnState();
+  this.updateQtyBtnStates();
 });
 
-_defineProperty(this, "updateIncreaseBtnState", () => {
+_defineProperty(this, "updateQtyBtnStates", () => {
   const { quantityInput, quantityBtns } = this.domNodes;
   if (!quantityInput || !quantityBtns) return;
   const plusBtn = Array.isArray(quantityBtns)
     ? quantityBtns.find(b => b.dataset.quantitySelector === 'increase' || b.name === 'plus')
     : null;
-  if (!plusBtn) return;
-
+  const minusBtn = Array.isArray(quantityBtns)
+    ? quantityBtns.find(b => b.dataset.quantitySelector === 'decrease' || b.name === 'minus')
+    : null;
+  
   const step = Number(quantityInput.getAttribute('data-min-qty')) || Number(quantityInput.step) || 1;
-  const min = Number(quantityInput.min) || step;
+  const minQty = step;
   let max = this.productData?.selected_variant?.inventory_quantity ?? Infinity;
   const attrMax = parseFloat(quantityInput.max);
   if (!Number.isNaN(attrMax)) max = attrMax;
   let val = parseInt(quantityInput.value, 10);
-  if (Number.isNaN(val)) val = min;
-  plusBtn.disabled = isFinite(max) && val >= max;
+  if (Number.isNaN(val)) val = 1;
+  if (plusBtn) plusBtn.disabled = isFinite(max) && val >= max;
+  if (minusBtn) minusBtn.disabled = val <= minQty && ((val - minQty) % step === 0);
 });
 
 
@@ -8911,7 +8855,8 @@ _defineProperty(this, "handleQtyBtnClick", (e, btn) => {
   const { quantitySelector } = btn.dataset;
   const { quantityInput } = this.domNodes;
   const step = Number(quantityInput.getAttribute('data-min-qty')) || Number(quantityInput.step) || 1;
-  const min = Number(quantityInput.min) || step;
+  const min = 1;
+  const minQty = step; // baza pentru calculele de snap
 
   // Folosește întâi input.max dacă există, altfel variant.inventory_quantity
   let max = this.productData?.selected_variant?.inventory_quantity ?? Infinity;
@@ -8919,42 +8864,35 @@ _defineProperty(this, "handleQtyBtnClick", (e, btn) => {
   if (!Number.isNaN(attrMax)) max = attrMax;
 
   let currentQty = parseInt(quantityInput.value, 10);
-  if (Number.isNaN(currentQty)) currentQty = min;
+  if (Number.isNaN(currentQty)) currentQty = 1;
   let newQty = currentQty;
 
   if (quantitySelector !== 'decrease' && isFinite(max) && currentQty >= max) {
-    // Dacă e deja la maxim, doar colorează și validează fără a incrementa mai mult
     if (typeof validateAndHighlightQty === 'function') {
       validateAndHighlightQty(quantityInput);
     } else {
       quantityInput.classList.add('text-red-600');
       quantityInput.style.color = '#e3342f';
     }
-    this.updateIncreaseBtnState && this.updateIncreaseBtnState();
+    this.updateQtyBtnStates && this.updateQtyBtnStates();
     return;
   }
 
-  // Helper pentru a ajusta la cel mai apropiat multiplu valid în jos
-  const snapDown = v => {
-    if (!isFinite(v)) return min;
-    if (v < min) return min;
-    return Math.floor((v - min) / step) * step + min;
-  };
-
   if (quantitySelector === 'decrease') {
-    if (currentQty >= max && max % step !== 0) {
-      newQty = snapDown(max);
-    } else if (currentQty % step !== 0) {
-      newQty = snapDown(currentQty);
+    // Snap la multiplu inferior față de minQty
+    if ((currentQty - minQty) % step !== 0) {
+      newQty = Math.floor((currentQty - minQty) / step) * step + minQty;
     } else {
       newQty = currentQty - step;
     }
-    if (newQty < min) newQty = min;
+    if (newQty < minQty) newQty = minQty;
   } else {
-    if (currentQty % step !== 0) {
-      newQty = snapDown(currentQty);
+    // Snap la multiplu superior față de minQty
+    if ((currentQty - minQty) % step !== 0) {
+      newQty = Math.ceil((currentQty - minQty) / step) * step + minQty;
+    } else {
+      newQty = currentQty + step;
     }
-    newQty = newQty + step;
     if (newQty > max) newQty = max;
   }
 
@@ -8969,7 +8907,7 @@ _defineProperty(this, "handleQtyBtnClick", (e, btn) => {
     quantityInput.style.color = '';
   }
 
-  this.updateIncreaseBtnState && this.updateIncreaseBtnState();
+  this.updateQtyBtnStates && this.updateQtyBtnStates();
   product_ConceptSGMEvents.emit(`${this.productData.id}__QUANTITY_CHANGE`, newQty, this);
 });
 
