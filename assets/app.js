@@ -7389,24 +7389,40 @@ addEventDelegate({
     if (item) {
       const input = btn.parentElement.querySelector(this.cartItemSelectors.qtyInput);
       const step = Number(input.getAttribute('data-min-qty')) || Number(input.step) || 1;
+      const min = Number(input.min) || step;
       const max = Number(input.max) || Infinity;
-      let quantity = Number(input.value) || 1;
+      let quantity = Number(input.value) || min;
+
+      // Snap quantity down to closest allowed multiple
+      const snapDown = v => {
+        if (!isFinite(v)) return min;
+        if (v < min) return min;
+        if (v > max) v = max;
+        if (v === max && max % step !== 0) {
+          return Math.floor((max - min) / step) * step + min;
+        }
+        if (v % step !== 0) {
+          return Math.floor((v - min) / step) * step + min;
+        }
+        return v;
+      };
 
       if (qtyChange === 'dec') {
-        if (quantity % step !== 0) {
-          quantity = Math.floor(quantity / step) * step;
-        } else {
-          quantity = quantity - step;
-        }
-        if (quantity < 1) quantity = 1;
-      } else {
-        if (isFinite(max) && quantity >= max) {
-          quantity = max;
+        // If we're at or above max and max isn't a perfect multiple, snap down
+        if (quantity >= max && max % step !== 0) {
+          quantity = snapDown(max);
         } else if (quantity % step !== 0) {
-          quantity = Math.ceil(quantity / step) * step;
+          quantity = snapDown(quantity);
         } else {
-          quantity = quantity + step;
+          quantity -= step;
         }
+        if (quantity < min) quantity = min;
+      } else {
+        // increment
+        if (quantity % step !== 0) {
+          quantity = snapDown(quantity);
+        }
+        quantity += step;
         if (quantity > max) quantity = max;
       }
 
@@ -7437,10 +7453,16 @@ addEventDelegate({
   handler: (e, input) => {
     e.preventDefault();
     const step = Number(input.getAttribute('data-min-qty')) || Number(input.step) || 1;
+    const min = Number(input.min) || step;
     const max = Number(input.max) || Infinity;
-    let quantity = Number(input.value) || 1;
-    if (quantity < 1) quantity = 1;
+    let quantity = Number(input.value) || min;
+
+    // Snap manual input to the closest allowed value
     if (quantity > max) quantity = max;
+    if (quantity !== max) {
+      quantity = Math.floor((quantity - min) / step) * step + min;
+      if (quantity < min) quantity = min;
+    }
 
     input.value = quantity;
     if (quantity >= max) {

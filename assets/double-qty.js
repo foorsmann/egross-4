@@ -10,20 +10,23 @@
     return Math.floor((val - min) / step) * step + min;
   }
 
-  function clampAndSnap(val, step, min, max){
-    // Limits value between min and max without snapping to step
+  function clampAndSnap(val, step, min, max, snap){
     val = Math.min(val, max);
     if(val < min) val = min;
+    if(snap && val !== max){
+      val = snapDown(val, step, min);
+    }
     return val;
   }
 
   function validateAndHighlightQty(input){
     var step = parseInt(input.getAttribute('data-min-qty'), 10) || parseInt(input.step,10) || 1;
-    var min = 1;
+    var isCart = input.closest('.scd-item') || input.closest('[data-cart-item]');
+    var min = isCart ? (parseInt(input.min, 10) || step) : 1;
     var max = input.max ? parseInt(input.max, 10) : Infinity;
     var val = parseInt(input.value, 10);
-    if(isNaN(val)) val = step;
-    val = clampAndSnap(val, step, min, max);
+    if(isNaN(val)) val = isCart ? min : step;
+    val = clampAndSnap(val, step, min, max, !!isCart);
     input.value = val;
     if(val >= max){
       input.classList.add('text-red-600');
@@ -42,7 +45,8 @@
     if(!plus) return;
     var max = input.max ? parseInt(input.max, 10) : Infinity;
     var step = parseInt(input.getAttribute('data-min-qty'), 10) || parseInt(input.step,10) || 1;
-    var min = parseInt(input.min, 10) || step;
+    var isCart = input.closest('.scd-item') || input.closest('[data-cart-item]');
+    var min = isCart ? (parseInt(input.min, 10) || step) : 1;
     var val = parseInt(input.value, 10);
     if(isNaN(val)) val = min;
     plus.disabled = isFinite(max) && val >= max;
@@ -57,7 +61,11 @@ var BUTTON_CLASS = 'double-qty-btn';
     document.querySelectorAll('[data-min-qty]').forEach(function(input){
       var min = parseInt(input.getAttribute('data-min-qty'), 10);
       if(min && min > 0){
-        input.min = 1; // allow manual values down to 1
+        if(input.closest('.scd-item') || input.closest('[data-cart-item]')){
+          input.min = min;
+        }else{
+          input.min = 1; // allow manual values down to 1 on product page
+        }
         input.step = min;
         if(parseInt(input.value,10) < min){
           input.value = min;
