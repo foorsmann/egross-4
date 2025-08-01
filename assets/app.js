@@ -7109,18 +7109,38 @@ class Cart {
         this.loading.finish();
 
         if (err?.status === 422) {
+          console.log('== ERROR 422, refreshing drawer ==');
+          const message = ConceptSGMStrings?.out_of_stock || 'Stoc insuficient';
           const lineItemNode = this.getLineItemNode(lineItem);
 
           if (lineItemNode) {
             cart_ConceptSGMTheme.Notification.show({
               target: lineItemNode,
               type: 'warning',
-              message: sold_out_items_message
+              message
+            });
+          } else {
+            cart_ConceptSGMTheme.Notification.show({
+              target: this.domNodes?.cartDrawerItems,
+              type: 'warning',
+              message
             });
           }
-        }
 
-        console.warn("Failed to change item quantity: ", err);
+          try {
+            const newCart = await this.getCart();
+            this.cart = newCart;
+            const cartHTML = await this.fetchCartSection();
+            this.renderNewCart(cartHTML);
+            window.Shopify.onCartUpdate(newCart, false);
+            this.openCartDrawer();
+            console.log('== Drawer rebuilt with fresh cart.js ==');
+          } catch (refreshErr) {
+            console.warn('Failed to refresh cart after 422', refreshErr);
+          }
+        } else {
+          console.warn("Failed to change item quantity: ", err);
+        }
       }
     });
 
@@ -9459,7 +9479,7 @@ _defineProperty(this, "updateProductCardSoldOutBadge", variant => {
         }
 
         const sourceEvent = formData.get('source_event') || 'product-form';
-        this.cartAddFromForm(formData).then(r => r.json()).then(res => {
+        this.cartAddFromForm(formData).then(r => r.json()).then(async res => {
           if (res?.status === 422) {
             modules_product_ConceptSGMTheme.Notification.show({
               target: this?.domNodes?.error,
@@ -9467,6 +9487,22 @@ _defineProperty(this, "updateProductCardSoldOutBadge", variant => {
               type: 'warning',
               message: res?.description || "Unable to add item to cart!"
             });
+
+            const { Cart } = modules_product_ConceptSGMTheme;
+            if (Cart) {
+              console.log('== ERROR 422, refreshing drawer ==');
+              await Cart.refreshCart();
+              const drawerHTML = await Cart.fetchCartSection();
+              Cart.renderNewCart(drawerHTML);
+              Cart.syncCartInputs?.();
+              Cart.openCartDrawer();
+              cart_ConceptSGMTheme.Notification.show({
+                target: Cart.domNodes?.cartDrawerItems,
+                type: 'warning',
+                message: ConceptSGMStrings?.out_of_stock || 'Stoc insuficient'
+              });
+              console.log('== Drawer synced after 422 ==');
+            }
           } else {
             res.source = sourceEvent;
             window.Shopify.onItemAdded(res);
