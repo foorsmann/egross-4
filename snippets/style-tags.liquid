@@ -149,6 +149,19 @@
   {{ style | strip_newlines }}
 {%- endstyle -%}
 
+{%- if settings.pcard_title_line_clamp == '1' -%}
+{%- style -%}
+@supports not (-webkit-line-clamp: 1) {
+  .truncate-lines {
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    display: block;
+  }
+}
+{%- endstyle -%}
+{%- endif -%}
+
 {%- if template.name == "product" -%}
 <link media="print" onload="this.media = 'all'" rel="stylesheet" href="{{ 'product-template.css' | asset_url }}">
 {%- endif -%}

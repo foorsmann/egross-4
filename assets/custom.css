@@ -17,3 +17,16 @@
 .prod__form-error:not(:empty) {
   display: block;
 }
+
+/*
+  Removed explicit one-line truncation for product titles.
+  Use .truncate-lines in theme.css which respects the
+  --product-title-line-clamp setting (1, 2 or 3 lines).
+*/
+/* .sf__pcard-name {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+} */
