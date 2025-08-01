@@ -8878,25 +8878,28 @@ _defineProperty(this, "handleQtyInputChange", e => {
   }
 
   product_ConceptSGMEvents.emit(`${this.productData.id}__QUANTITY_CHANGE`, val, this);
-  this.updateIncreaseBtnState();
+  this.updateQtyBtnStates();
 });
 
-_defineProperty(this, "updateIncreaseBtnState", () => {
+_defineProperty(this, "updateQtyBtnStates", () => {
   const { quantityInput, quantityBtns } = this.domNodes;
   if (!quantityInput || !quantityBtns) return;
   const plusBtn = Array.isArray(quantityBtns)
     ? quantityBtns.find(b => b.dataset.quantitySelector === 'increase' || b.name === 'plus')
     : null;
-  if (!plusBtn) return;
-
+  const minusBtn = Array.isArray(quantityBtns)
+    ? quantityBtns.find(b => b.dataset.quantitySelector === 'decrease' || b.name === 'minus')
+    : null;
+  
   const step = Number(quantityInput.getAttribute('data-min-qty')) || Number(quantityInput.step) || 1;
-  const min = 1;
+  const minQty = step;
   let max = this.productData?.selected_variant?.inventory_quantity ?? Infinity;
   const attrMax = parseFloat(quantityInput.max);
   if (!Number.isNaN(attrMax)) max = attrMax;
   let val = parseInt(quantityInput.value, 10);
-  if (Number.isNaN(val)) val = min;
-  plusBtn.disabled = isFinite(max) && val >= max;
+  if (Number.isNaN(val)) val = 1;
+  if (plusBtn) plusBtn.disabled = isFinite(max) && val >= max;
+  if (minusBtn) minusBtn.disabled = val <= minQty && ((val - minQty) % step === 0);
 });
 
 
@@ -8923,7 +8926,7 @@ _defineProperty(this, "handleQtyBtnClick", (e, btn) => {
       quantityInput.classList.add('text-red-600');
       quantityInput.style.color = '#e3342f';
     }
-    this.updateIncreaseBtnState && this.updateIncreaseBtnState();
+    this.updateQtyBtnStates && this.updateQtyBtnStates();
     return;
   }
 
@@ -8956,7 +8959,7 @@ _defineProperty(this, "handleQtyBtnClick", (e, btn) => {
     quantityInput.style.color = '';
   }
 
-  this.updateIncreaseBtnState && this.updateIncreaseBtnState();
+  this.updateQtyBtnStates && this.updateQtyBtnStates();
   product_ConceptSGMEvents.emit(`${this.productData.id}__QUANTITY_CHANGE`, newQty, this);
 });
 
