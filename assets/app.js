@@ -7388,53 +7388,14 @@ addEventDelegate({
 
     if (item) {
       const input = btn.parentElement.querySelector(this.cartItemSelectors.qtyInput);
-      const step = Number(input.getAttribute('data-min-qty')) || Number(input.step) || 1;
-      const min = Number(input.min) || step;
-      const max = Number(input.max) || Infinity;
-      let quantity = Number(input.value) || min;
+      if (!input) return;
 
-      // Snap quantity down to closest allowed multiple
-      const snapDown = v => {
-        if (!isFinite(v)) return min;
-        if (v < min) return min;
-        if (v > max) v = max;
-        if (v === max && max % step !== 0) {
-          return Math.floor((max - min) / step) * step + min;
-        }
-        if (v % step !== 0) {
-          return Math.floor((v - min) / step) * step + min;
-        }
-        return v;
-      };
-
-      if (qtyChange === 'dec') {
-        // If we're at or above max and max isn't a perfect multiple, snap down
-        if (quantity >= max && max % step !== 0) {
-          quantity = snapDown(max);
-        } else if (quantity % step !== 0) {
-          quantity = snapDown(quantity);
-        } else {
-          quantity -= step;
-        }
-        if (quantity < min) quantity = min;
-      } else {
-        // increment
-        if (quantity % step !== 0) {
-          quantity = snapDown(quantity);
-        }
-        quantity += step;
-        if (quantity > max) quantity = max;
+      const before = input.value;
+      if (typeof adjustQuantityHelper === 'function') {
+        adjustQuantityHelper(input, qtyChange === 'dec' ? -1 : 1, before);
       }
 
-      input.value = quantity;
-      if (quantity >= max) {
-        input.classList.add('text-red-600');
-        input.style.color = '#e3342f';
-      } else {
-        input.classList.remove('text-red-600');
-        input.style.color = '';
-      }
-
+      const quantity = parseInt(input.value, 10) || 1;
       this.changeItemQty({
         id,
         quantity
@@ -7452,27 +7413,14 @@ addEventDelegate({
   selector: this.cartItemSelectors.qtyInput,
   handler: (e, input) => {
     e.preventDefault();
-    const step = Number(input.getAttribute('data-min-qty')) || Number(input.step) || 1;
-    const min = Number(input.min) || step;
-    const max = Number(input.max) || Infinity;
-    let quantity = Number(input.value) || min;
-
-    // Snap manual input to the closest allowed value
-    if (quantity > max) quantity = max;
-    if (quantity !== max) {
-      quantity = Math.floor((quantity - min) / step) * step + min;
-      if (quantity < min) quantity = min;
+    if (typeof validateAndHighlightQty === 'function') {
+      validateAndHighlightQty(input);
     }
-
-    input.value = quantity;
-    if (quantity >= max) {
-      input.classList.add('text-red-600');
-      input.style.color = '#e3342f';
-    } else {
-      input.classList.remove('text-red-600');
-      input.style.color = '';
+    if (typeof updateQtyButtonsState === 'function') {
+      updateQtyButtonsState(input);
     }
     const { id } = input.dataset;
+    const quantity = parseInt(input.value, 10) || 1;
     this.changeItemQty({
       id,
       quantity

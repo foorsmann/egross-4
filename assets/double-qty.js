@@ -21,12 +21,10 @@
 
   function validateAndHighlightQty(input){
     var step = parseInt(input.getAttribute('data-min-qty'), 10) || parseInt(input.step,10) || 1;
-    var isCart = input.closest('.scd-item') || input.closest('[data-cart-item]');
-    var min = isCart ? (parseInt(input.min, 10) || step) : 1;
     var max = input.max ? parseInt(input.max, 10) : Infinity;
     var val = parseInt(input.value, 10);
-    if(isNaN(val)) val = isCart ? min : step;
-    val = clampAndSnap(val, step, min, max, !!isCart);
+    if(isNaN(val)) val = 1;
+    val = clampAndSnap(val, step, 1, max, false);
     input.value = val;
     if(val >= max){
       input.classList.add('text-red-600');
@@ -47,14 +45,13 @@
 
     var max = input.max ? parseInt(input.max, 10) : Infinity;
     var step = parseInt(input.getAttribute('data-min-qty'), 10) || parseInt(input.step,10) || 1;
-    var isCart = input.closest('.scd-item') || input.closest('[data-cart-item]');
     var minQty = step;
     var val = parseInt(input.value, 10);
-    if(isNaN(val)) val = isCart ? (parseInt(input.min,10) || step) : 1;
+    if(isNaN(val)) val = 1;
 
     if(plus) plus.disabled = isFinite(max) && val >= max;
-    if(!isCart && minus){
-      // minus devine inactiv doar când valoarea este exact multiplu valid şi nu poate coborî sub minQty
+    if(minus){
+      // minus devine inactiv când valoarea curentă nu poate scădea sub minQty
       minus.disabled = val <= minQty && ((val - minQty) % step === 0);
     }
   }
@@ -63,6 +60,9 @@
   var updateIncreaseBtnState = updateQtyButtonsState;
 
   window.validateAndHighlightQty = validateAndHighlightQty;
+  // expunem helperii pentru a putea fi folosiți și în cart/drawer
+  window.updateQtyButtonsState = updateQtyButtonsState;
+  window.adjustQuantityHelper = adjustQuantity;
 
 var BUTTON_CLASS = 'double-qty-btn';
 
