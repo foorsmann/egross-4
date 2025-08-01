@@ -9496,17 +9496,52 @@ _defineProperty(this, "updateProductCardSoldOutBadge", variant => {
         const sourceEvent = formData.get('source_event') || 'product-form';
         this.cartAddFromForm(formData).then(r => r.json()).then(async res => {
           if (res?.status === 422) {
+            const qtyInput = this.domNodes?.quantityInput;
+            const attrMax = parseInt(qtyInput?.max, 10);
+            const maxQty = !Number.isNaN(attrMax) ? attrMax : (this.productData?.selected_variant?.inventory_quantity || 1);
+
+            // set product page input to max quantity and reapply helpers
+            if (qtyInput) {
+              qtyInput.value = maxQty;
+              if (typeof validateAndHighlightQty === 'function') {
+                validateAndHighlightQty(qtyInput);
+              }
+              if (typeof updateQtyButtonsState === 'function') {
+                updateQtyButtonsState(qtyInput);
+              }
+            }
+
+            const warningMsg = `Stoc insuficient! S-a setat automat cantitatea maxim\u0103 disponibil\u0103: ${maxQty} buc\u0103\u021bi.`;
+
             modules_product_ConceptSGMTheme.Notification.show({
               target: this?.domNodes?.error,
               method: 'appendChild',
               type: 'warning',
-              message: res?.description || "Unable to add item to cart!"
+              message: warningMsg
             });
 
             const { Cart } = modules_product_ConceptSGMTheme;
             if (Cart) {
               console.log('== ERROR 422, refreshing drawer ==');
               await Cart.refreshCart();
+
+              // update drawer quantity immediately before re-render
+              const variantId = this.productData?.selected_variant?.id;
+              if (variantId) {
+                const item = Cart.cart.items.find(i => i.variant_id === variantId);
+                const node = Cart.domNodes.cartDrawerItems?.querySelector(`.scd-item[data-id="${item?.key}"]`);
+                const input = node?.querySelector(Cart.cartItemSelectors.qtyInput);
+                if (input && item) {
+                  input.value = item.quantity;
+                  if (typeof validateAndHighlightQty === 'function') {
+                    validateAndHighlightQty(input);
+                  }
+                  if (typeof updateQtyButtonsState === 'function') {
+                    updateQtyButtonsState(input);
+                  }
+                }
+              }
+
               const drawerHTML = await Cart.fetchCartSection();
               Cart.renderNewCart(drawerHTML);
               Cart.syncCartInputs?.();
@@ -9514,7 +9549,7 @@ _defineProperty(this, "updateProductCardSoldOutBadge", variant => {
               cart_ConceptSGMTheme.Notification.show({
                 target: Cart.domNodes?.cartDrawerItems,
                 type: 'warning',
-                message: ConceptSGMStrings?.out_of_stock || 'Stoc insuficient'
+                message: warningMsg
               });
               console.log('== Drawer synced after 422 ==');
             }
