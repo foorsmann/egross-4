@@ -51,8 +51,9 @@
 
     if(plus) plus.disabled = isFinite(max) && val >= max;
     if(minus){
-      // minus devine inactiv când valoarea curentă nu poate scădea sub minQty
-      minus.disabled = val <= minQty && ((val - minQty) % step === 0);
+      // minus devine inactiv când valoarea curentă este sub sau egală cu minQty
+      // pentru a preveni scăderea sub limita minimă
+      minus.disabled = val <= minQty;
     }
   }
 

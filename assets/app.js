@@ -8847,7 +8847,11 @@ _defineProperty(this, "updateQtyBtnStates", () => {
   let val = parseInt(quantityInput.value, 10);
   if (Number.isNaN(val)) val = 1;
   if (plusBtn) plusBtn.disabled = isFinite(max) && val >= max;
-  if (minusBtn) minusBtn.disabled = val <= minQty && ((val - minQty) % step === 0);
+  if (minusBtn) {
+    // minus button disabled when current value is at or below minQty,
+    // regardless of manual input or button usage
+    minusBtn.disabled = val <= minQty;
+  }
 });
 
 
