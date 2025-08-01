@@ -7039,16 +7039,28 @@ class Cart {
         this.loading.start();
         const newCart = await this.changeCart(lineItem);
         this.cart = newCart;
+        const newItem = newCart.items.find(_ref2 => {
+          let { key: _key } = _ref2;
+          return _key === key;
+        });
+        // sincronizăm instant cantitatea din input cu valoarea returnată de server
+        const lineItemNodeInstant = this.getLineItemNode(lineItem);
+        if (lineItemNodeInstant) {
+          const instantInput = lineItemNodeInstant.querySelector(this.cartItemSelectors.qtyInput);
+          if (instantInput && newItem) {
+            instantInput.value = newItem.quantity;
+            if (typeof validateAndHighlightQty === 'function') {
+              validateAndHighlightQty(instantInput);
+            }
+            if (typeof updateQtyButtonsState === 'function') {
+              updateQtyButtonsState(instantInput);
+            }
+          }
+        }
         const cartHTML = await this.fetchCartSection();
         this.loading.finish(() => {
           this.renderNewCart(cartHTML);
           window.Shopify.onCartUpdate(newCart, false);
-          const newItem = newCart.items.find(_ref2 => {
-            let {
-              key: _key
-            } = _ref2;
-            return _key === key;
-          });
 
           if (quantity > newItem?.quantity) {
             const {
