@@ -7132,24 +7132,26 @@ class Cart {
 
       const newCartBody = cartHTML.querySelector('.scd__body');
       const newCartSummary = cartHTML.querySelector('.scd__summary');
+
+      // Apply button state and highlight while new DOM is still detached
+      if (typeof updateQtyButtonsState === 'function' || typeof validateAndHighlightQty === 'function') {
+        newCartBody
+          ?.querySelectorAll(this.cartItemSelectors.qtyInput)
+          .forEach(input => {
+            if (typeof validateAndHighlightQty === 'function') {
+              validateAndHighlightQty(input);
+            }
+            if (typeof updateQtyButtonsState === 'function') {
+              updateQtyButtonsState(input);
+            }
+          });
+      }
+
       const currentCartBody = this.domNodes.cartDrawer.querySelector('.scd__body');
       const currentCartSummary = this.domNodes.cartDrawer.querySelector('.scd__summary');
       currentCartBody.replaceWith(newCartBody);
       currentCartSummary.replaceWith(newCartSummary);
       this.domNodes = queryDomNodes(this.selectors);
-      if (typeof updateQtyButtonsState === 'function' || typeof validateAndHighlightQty === 'function') {
-        this.domNodes.cartDrawer
-          ?.querySelectorAll(this.cartItemSelectors.qtyInput)
-          .forEach(input => {
-            if (typeof updateQtyButtonsState === 'function') {
-              updateQtyButtonsState(input);
-            }
-            // ensure max value stays highlighted after cart refresh
-            if (typeof validateAndHighlightQty === 'function') {
-              validateAndHighlightQty(input);
-            }
-          });
-      }
     });
 
     _defineProperty(this, "refreshCart", async () => {
