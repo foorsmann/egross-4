@@ -8840,8 +8840,9 @@ _defineProperty(this, "handleQtyInputChange", e => {
   const attrMax = parseFloat(input.max);
   if (!Number.isNaN(attrMax)) max = attrMax;
 
-  let val = Number(input.value) || step;
-  if (val < 1) val = 1;
+  // Valoarea introdusă manual este permisă liber între 1 și max
+  let val = Number(input.value);
+  if (Number.isNaN(val) || val < 1) val = 1;
   if (val > max) val = max;
   input.value = val;
 
@@ -8882,6 +8883,7 @@ _defineProperty(this, "handleQtyBtnClick", (e, btn) => {
   const { quantityInput } = this.domNodes;
   const step = Number(quantityInput.getAttribute('data-min-qty')) || Number(quantityInput.step) || 1;
   const min = 1;
+  const minQty = step; // baza pentru calculele de snap
 
   // Folosește întâi input.max dacă există, altfel variant.inventory_quantity
   let max = this.productData?.selected_variant?.inventory_quantity ?? Infinity;
@@ -8904,15 +8906,17 @@ _defineProperty(this, "handleQtyBtnClick", (e, btn) => {
   }
 
   if (quantitySelector === 'decrease') {
-    if (currentQty % step !== 0) {
-      newQty = Math.floor(currentQty / step) * step;
+    // Snap la multiplu inferior față de minQty
+    if ((currentQty - minQty) % step !== 0) {
+      newQty = Math.floor((currentQty - minQty) / step) * step + minQty;
     } else {
       newQty = currentQty - step;
     }
-    if (newQty < 1) newQty = 1;
+    if (newQty < minQty) newQty = minQty;
   } else {
-    if (currentQty % step !== 0) {
-      newQty = Math.ceil(currentQty / step) * step;
+    // Snap la multiplu superior față de minQty
+    if ((currentQty - minQty) % step !== 0) {
+      newQty = Math.ceil((currentQty - minQty) / step) * step + minQty;
     } else {
       newQty = currentQty + step;
     }

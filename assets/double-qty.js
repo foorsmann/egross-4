@@ -147,10 +147,11 @@ var BUTTON_CLASS = 'double-qty-btn';
   function adjustQuantity(input, delta){
     var step = parseInt(input.getAttribute('data-min-qty'), 10) || 1;
     var max = input.max ? parseInt(input.max, 10) : Infinity;
+    var minQty = step; // valoarea minimă configurată
     var val = parseInt(input.value, 10);
     if(isNaN(val)) val = 1;
 
-    // Increment: dacă suntem deja la maxim sau peste, doar validează și colorează, nu schimba valoarea!
+    // Dacă suntem la maxim, doar validează și colorează
     if(delta > 0 && isFinite(max) && val >= max){
       validateAndHighlightQty(input);
       updateIncreaseBtnState(input);
@@ -158,15 +159,17 @@ var BUTTON_CLASS = 'double-qty-btn';
     }
 
     if(delta < 0){
-      if(val % step !== 0){
-        val = Math.floor(val / step) * step;
+      // Snap la multiplu inferior plecând de la minQty
+      if((val - minQty) % step !== 0){
+        val = Math.floor((val - minQty) / step) * step + minQty;
       }else{
         val -= step;
       }
-      if(val < 1) val = 1;
+      if(val < minQty) val = minQty;
     }else{
-      if(val % step !== 0){
-        val = Math.ceil(val / step) * step;
+      // Snap la multiplu superior plecând de la minQty
+      if((val - minQty) % step !== 0){
+        val = Math.ceil((val - minQty) / step) * step + minQty;
       }else{
         val += step;
       }
