@@ -7130,6 +7130,21 @@ class Cart {
           try {
             const newCart = await this.getCart();
             this.cart = newCart;
+            const newItem = newCart.items.find(i => i.key === lineItem.id);
+            const errNode = this.getLineItemNode(lineItem);
+            if (errNode && newItem) {
+              const input = errNode.querySelector(this.cartItemSelectors.qtyInput);
+              if (input) {
+                console.log('[422] set input to server qty', { id: lineItem.id, qty: newItem.quantity });
+                input.value = newItem.quantity;
+                if (typeof validateAndHighlightQty === 'function') {
+                  validateAndHighlightQty(input);
+                }
+                if (typeof updateQtyButtonsState === 'function') {
+                  updateQtyButtonsState(input);
+                }
+              }
+            }
             const cartHTML = await this.fetchCartSection();
             this.renderNewCart(cartHTML);
             window.Shopify.onCartUpdate(newCart, false);
