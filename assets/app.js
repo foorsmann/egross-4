@@ -7115,10 +7115,18 @@ class Cart {
       currentCartBody.replaceWith(newCartBody);
       currentCartSummary.replaceWith(newCartSummary);
       this.domNodes = queryDomNodes(this.selectors);
-      if (typeof updateQtyButtonsState === 'function') {
+      if (typeof updateQtyButtonsState === 'function' || typeof validateAndHighlightQty === 'function') {
         this.domNodes.cartDrawer
           ?.querySelectorAll(this.cartItemSelectors.qtyInput)
-          .forEach(input => updateQtyButtonsState(input));
+          .forEach(input => {
+            if (typeof updateQtyButtonsState === 'function') {
+              updateQtyButtonsState(input);
+            }
+            // ensure max value stays highlighted after cart refresh
+            if (typeof validateAndHighlightQty === 'function') {
+              validateAndHighlightQty(input);
+            }
+          });
       }
     });
 
