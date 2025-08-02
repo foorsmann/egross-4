@@ -72,15 +72,9 @@ var BUTTON_CLASS = 'double-qty-btn';
     document.querySelectorAll('[data-min-qty]').forEach(function(input){
       var min = parseInt(input.getAttribute('data-min-qty'), 10);
       if(min && min > 0){
-        if(input.closest('.scd-item') || input.closest('[data-cart-item]')){
-          input.min = min;
-        }else{
-          input.min = 1; // allow manual values down to 1 on product page
-        }
+        input.min = 1; // allow manual quantities below min_qty everywhere
         input.step = min;
-        if(parseInt(input.value,10) < min){
-          input.value = min;
-        }
+        // nu forţăm valoarea dacă este sub min_qty; doar actualizăm starea butoanelor
         validateAndHighlightQty(input);
         updateQtyButtonsState(input);
       }
