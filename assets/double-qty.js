@@ -243,7 +243,17 @@ var BUTTON_CLASS = 'double-qty-btn';
 
       btn.addEventListener('click', function(e){
         e.preventDefault();
-        adjustQuantity(input, 1);
+        var step = parseInt(input.getAttribute('data-min-qty'), 10) || parseInt(input.step,10) || 1;
+        var max = input.max ? parseInt(input.max, 10) : Infinity;
+        var current = parseInt(input.value, 10);
+        if(isNaN(current)) current = 0;
+        var newVal = current + step;
+        if(newVal > max) newVal = max;
+        input.value = newVal;
+        validateAndHighlightQty(input);
+        updateQtyButtonsState(input);
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
         updateBtnState();
       });
 
