@@ -147,8 +147,10 @@
     });
   }
 
-  async function refreshQtyInputs(){
+  async function syncCartUI(){
     try{
+      // Sync cu cartul Shopify după 422 – race condition server
+      await fetch('/cart/clear.js',{method:'POST'});
       const cart = await getCart();
       cart.items.forEach(it=>{
         document.querySelectorAll(`.scd-item__qty_input[data-id="${it.key}"]`).forEach(inp=>{
@@ -156,15 +158,26 @@
           if(it.variant) inp.max = it.variant.inventory_quantity;
         });
       });
+      document.querySelectorAll('.sf-cart-count').forEach(el=>{ el.textContent = cart.item_count; });
+      if(typeof window.ConceptSGMTheme !== 'undefined' && window.ConceptSGMTheme.Cart){
+        try{
+          const cartHTML = await window.ConceptSGMTheme.Cart.fetchCartSection();
+          window.ConceptSGMTheme.Cart.cart = cart;
+          window.ConceptSGMTheme.Cart.renderNewCart(cartHTML);
+        }catch(e){}
+      }
+      if(window.Shopify && typeof window.Shopify.onCartUpdate==='function'){
+        try{ window.Shopify.onCartUpdate(cart, false); }catch(e){}
+      }
+      if(/\bcart\b/.test(location.pathname)) location.reload();
     }catch(e){}
   }
 
   function handleInvalid(items){
     disableControls(items);
+    syncCartUI();
     window.dispatchEvent(new CustomEvent('cart:invalid',{detail:{items}}));
   }
-
-  window.addEventListener('cart:invalid', refreshQtyInputs);
 
   const _fetch = window.fetch.bind(window);
   window.fetch = async function(resource, config={}){
