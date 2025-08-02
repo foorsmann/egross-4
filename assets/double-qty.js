@@ -20,6 +20,12 @@
   }
 
   function validateAndHighlightQty(input){
+    // allow user to temporarily clear the field without forcing it back to 1
+    if(input.value === ''){
+      input.classList.remove('text-red-600');
+      input.style.color = '';
+      return;
+    }
     var step = parseInt(input.getAttribute('data-min-qty'), 10) || parseInt(input.step,10) || 1;
     var max = input.max ? parseInt(input.max, 10) : Infinity;
     var val = parseInt(input.value, 10);
@@ -47,12 +53,13 @@
     var step = parseInt(input.getAttribute('data-min-qty'), 10) || parseInt(input.step,10) || 1;
     var minQty = step;
     var val = parseInt(input.value, 10);
-    if(isNaN(val)) val = 1;
+    if(isNaN(val)) val = 0; // treat empty input as 0 so minus stays disabled
 
     if(plus) plus.disabled = isFinite(max) && val >= max;
     if(minus){
-      // minus devine inactiv când valoarea curentă nu poate scădea sub minQty
-      minus.disabled = val <= minQty && ((val - minQty) % step === 0);
+      // minus devine inactiv când valoarea curentă este sub sau egală cu minQty
+      // adaugă verificarea pentru input manual mai mic decât min_qty
+      minus.disabled = val <= minQty;
     }
   }
 
@@ -71,15 +78,9 @@ var BUTTON_CLASS = 'double-qty-btn';
     document.querySelectorAll('[data-min-qty]').forEach(function(input){
       var min = parseInt(input.getAttribute('data-min-qty'), 10);
       if(min && min > 0){
-        if(input.closest('.scd-item') || input.closest('[data-cart-item]')){
-          input.min = min;
-        }else{
-          input.min = 1; // allow manual values down to 1 on product page
-        }
+        input.min = 1; // allow manual quantities below min_qty everywhere
         input.step = min;
-        if(parseInt(input.value,10) < min){
-          input.value = min;
-        }
+        // nu forţăm valoarea dacă este sub min_qty; doar actualizăm starea butoanelor
         validateAndHighlightQty(input);
         updateQtyButtonsState(input);
       }
