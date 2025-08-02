@@ -65,7 +65,7 @@ if (!customElements.get("product-form")) {
       }
     }
 
-    onSubmitHandler(evt) {
+    async onSubmitHandler(evt) {
       evt.preventDefault();
       this.toggleSpinner(true);
       const missing = validateForm(this.form.closest(".main-product__blocks"));
@@ -81,15 +81,45 @@ if (!customElements.get("product-form")) {
         });
       }
 
+      const formData = new FormData(this.form);
+      const variantId = parseInt(formData.get('id'), 10);
+      const requestedQty = parseInt(formData.get('quantity')) || 1;
+      const maxQty = parseInt(this.form.querySelector('[name="quantity"]')?.max) || Infinity;
+
+      let cartQty = 0;
+      try {
+        const cart = await fetch('/cart.js').then(r => r.json());
+        cartQty = cart.items?.find(itm => itm.variant_id === variantId)?.quantity || 0;
+      } catch (err) {
+        cartQty = 0;
+      }
+
+      const availableToAdd = Math.max(maxQty - cartQty, 0);
+      if (availableToAdd <= 0) {
+        this.toggleSpinner(false);
+        return window.ConceptSGMTheme.Notification.show({
+          target: this?.domNodes?.errorWrapper,
+          method: "appendChild",
+          type: "warning",
+          message: window.ConceptSGMStrings.cartLimit || 'Cantitatea maxima pentru aceasta varianta este deja in cos.'
+        });
+      }
+
+      if (requestedQty > availableToAdd) {
+        formData.set('quantity', availableToAdd);
+        const qtyInput = this.form.querySelector('[name="quantity"]');
+        if (qtyInput) qtyInput.value = availableToAdd;
+      }
+
       const config = {
         method: "POST",
         headers: {
           Accept: "application/javascript",
           "X-Requested-With": "XMLHttpRequest"
-        }
+        },
+        body: formData
       };
-      const formData = new FormData(this.form);
-      config.body = formData;
+
       const {
         ConceptSGMSettings,
         ConceptSGMStrings
