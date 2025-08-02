@@ -6929,6 +6929,8 @@ class Cart {
 
     _defineProperty(this, "cart", {});
 
+    _defineProperty(this, "pendingQty", new Set());
+
     _defineProperty(this, "scrollHandlerAdded", false);
 
     _defineProperty(this, "countdownTimerStarted", false);
@@ -7026,16 +7028,15 @@ class Cart {
     });
 
     _defineProperty(this, "changeItemQty", async lineItem => {
-      const {
-        not_enough_item_message,
-        sold_out_items_message
-      } = cart_ConceptSGMStrings;
-
+      const { not_enough_item_message, sold_out_items_message } = cart_ConceptSGMStrings;
+      const key = lineItem.id || lineItem.line;
+      if (this.pendingQty.has(key)) return;
+      this.pendingQty.add(key);
+      const lineItemNode = this.getLineItemNode(lineItem);
+      const controls = lineItemNode ? lineItemNode.querySelectorAll(this.cartItemSelectors.btn + ',' + this.cartItemSelectors.qtyInput) : [];
+      controls.forEach(el => el.disabled = true);
       try {
-        const {
-          id: key,
-          quantity
-        } = lineItem;
+        const { id, quantity } = lineItem;
         this.loading.start();
         const newCart = await this.changeCart(lineItem);
         this.cart = newCart;
@@ -7044,27 +7045,21 @@ class Cart {
           this.renderNewCart(cartHTML);
           window.Shopify.onCartUpdate(newCart, false);
           const newItem = newCart.items.find(_ref2 => {
-            let {
-              key: _key
-            } = _ref2;
-            return _key === key;
+            let { key: _key } = _ref2;
+            return _key === id;
           });
 
           if (quantity > newItem?.quantity) {
-            const {
-              product_id
-            } = newItem;
+            const { product_id } = newItem;
             const lineItems = newCart.items.filter(_ref3 => {
-              let {
-                product_id: pId
-              } = _ref3;
+              let { product_id: pId } = _ref3;
               return pId === product_id;
             });
 
             if (lineItems.length === 1) {
-              const lineItemNode = this.getLineItemNode(lineItem);
+              const lineItemNode2 = this.getLineItemNode(lineItem);
               cart_ConceptSGMTheme.Notification.show({
-                target: lineItemNode,
+                target: lineItemNode2,
                 type: 'warning',
                 message: not_enough_item_message.replace('__inventory_quantity__', newItem.quantity)
               });
@@ -7075,11 +7070,11 @@ class Cart {
         this.loading.finish();
 
         if (err?.status === 422) {
-          const lineItemNode = this.getLineItemNode(lineItem);
+          const lineItemNode2 = this.getLineItemNode(lineItem);
 
-          if (lineItemNode) {
+          if (lineItemNode2) {
             cart_ConceptSGMTheme.Notification.show({
-              target: lineItemNode,
+              target: lineItemNode2,
               type: 'warning',
               message: sold_out_items_message
             });
@@ -7087,6 +7082,9 @@ class Cart {
         }
 
         console.warn("Failed to change item quantity: ", err);
+      } finally {
+        controls.forEach(el => el.disabled = false);
+        this.pendingQty.delete(key);
       }
     });
 
