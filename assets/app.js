@@ -7036,10 +7036,14 @@ class Cart {
         const lineItemNode = this.getLineItemNode(lineItem);
         const input = lineItemNode?.querySelector(this.cartItemSelectors.qtyInput);
         if (input && quantity > 0) {
-          const before = input.value;
-          if (typeof validateAndHighlightQty === 'function') validateAndHighlightQty(input);
-          if (typeof updateQtyButtonsState === 'function') updateQtyButtonsState(input);
-          const clamped = parseInt(input.value, 10) || 1;
+          let clamped;
+          if (typeof clampQtyInput === 'function') {
+            clamped = clampQtyInput(input);
+          } else {
+            if (typeof validateAndHighlightQty === 'function') validateAndHighlightQty(input);
+            if (typeof updateQtyButtonsState === 'function') updateQtyButtonsState(input);
+            clamped = parseInt(input.value, 10) || 1;
+          }
           if (clamped !== quantity) {
             console.log('clamp change qty', { beforeReq: quantity, clamped });
             lineItem.quantity = clamped;
@@ -7110,8 +7114,12 @@ class Cart {
                 console.log('DOM qty after render', input?.value);
                 if (input && expected !== undefined && Number(input.value) !== Number(expected)) {
                   input.value = expected;
-                  validateAndHighlightQty?.(input);
-                  updateQtyButtonsState?.(input);
+                  if (typeof clampQtyInput === 'function') {
+                    clampQtyInput(input);
+                  } else {
+                    validateAndHighlightQty?.(input);
+                    updateQtyButtonsState?.(input);
+                  }
                 }
               }
             }
@@ -7169,8 +7177,12 @@ class Cart {
             console.log('qty already correct', { id: inp.dataset.id, value: after });
           }
 
-          if (typeof validateAndHighlightQty === 'function') validateAndHighlightQty(inp);
-          if (typeof updateQtyButtonsState === 'function') updateQtyButtonsState(inp);
+          if (typeof clampQtyInput === 'function') {
+            clampQtyInput(inp);
+          } else {
+            if (typeof validateAndHighlightQty === 'function') validateAndHighlightQty(inp);
+            if (typeof updateQtyButtonsState === 'function') updateQtyButtonsState(inp);
+          }
         });
       };
 
@@ -7447,18 +7459,17 @@ addEventDelegate({
     if (item) {
       const input = btn.parentElement.querySelector(this.cartItemSelectors.qtyInput);
       if (!input) return;
-
-      const before = input.value;
       if (typeof adjustQuantityHelper === 'function') {
-        adjustQuantityHelper(input, qtyChange === 'dec' ? -1 : 1, before);
+        adjustQuantityHelper(input, qtyChange === 'dec' ? -1 : 1, input.value);
       }
-      if (typeof validateAndHighlightQty === 'function') validateAndHighlightQty(input);
-      if (typeof updateQtyButtonsState === 'function') updateQtyButtonsState(input);
-      const quantity = parseInt(input.value, 10) || 1;
-      this.changeItemQty({
-        id,
-        quantity
-      });
+      const quantity = typeof clampQtyInput === 'function'
+        ? clampQtyInput(input)
+        : (() => {
+            if (typeof validateAndHighlightQty === 'function') validateAndHighlightQty(input);
+            if (typeof updateQtyButtonsState === 'function') updateQtyButtonsState(input);
+            return parseInt(input.value, 10) || 1;
+          })();
+      this.changeItemQty({ id, quantity });
     } else {
       console.warn(`Cart item to change quantity not found. Key: ${id}`);
     }
@@ -7468,22 +7479,33 @@ addEventDelegate({
 
 addEventDelegate({
   context: this.domNodes.cartDrawer,
+  event: 'input',
+  selector: this.cartItemSelectors.qtyInput,
+  handler: (e, input) => {
+    if (typeof clampQtyInput === 'function') {
+      clampQtyInput(input);
+    } else {
+      if (typeof validateAndHighlightQty === 'function') validateAndHighlightQty(input);
+      if (typeof updateQtyButtonsState === 'function') updateQtyButtonsState(input);
+    }
+  }
+});
+
+addEventDelegate({
+  context: this.domNodes.cartDrawer,
   event: 'change',
   selector: this.cartItemSelectors.qtyInput,
   handler: (e, input) => {
     e.preventDefault();
-    if (typeof validateAndHighlightQty === 'function') {
-      validateAndHighlightQty(input);
-    }
-    if (typeof updateQtyButtonsState === 'function') {
-      updateQtyButtonsState(input);
-    }
+    const quantity = typeof clampQtyInput === 'function'
+      ? clampQtyInput(input)
+      : (() => {
+          if (typeof validateAndHighlightQty === 'function') validateAndHighlightQty(input);
+          if (typeof updateQtyButtonsState === 'function') updateQtyButtonsState(input);
+          return parseInt(input.value, 10) || 1;
+        })();
     const { id } = input.dataset;
-    const quantity = parseInt(input.value, 10) || 1;
-    this.changeItemQty({
-      id,
-      quantity
-    });
+    this.changeItemQty({ id, quantity });
   }
 });
 
@@ -8831,6 +8853,12 @@ class Product {
         selector: this.selectors.quantityInput,
         handler: this.handleQtyInputChange
       }));
+      listeners.push((0,events/* addEventDelegate */.X)({
+        event: 'input',
+        context: this.productForm,
+        selector: this.selectors.quantityInput,
+        handler: this.handleQtyInputChange
+      }));
 
       this.listeners = listeners;
       const {
@@ -9389,10 +9417,15 @@ _defineProperty(this, "updateProductCardSoldOutBadge", variant => {
       const { quantityInput } = this.domNodes;
       if (quantityInput) {
         const before = quantityInput.value;
-        if (typeof validateAndHighlightQty === 'function') validateAndHighlightQty(quantityInput);
-        if (typeof updateQtyButtonsState === 'function') updateQtyButtonsState(quantityInput);
-        const clamped = quantityInput.value;
-        if (before !== clamped) console.log('clamp add-to-cart qty', { before, clamped });
+        const clamped = typeof clampQtyInput === 'function'
+          ? clampQtyInput(quantityInput)
+          : (() => {
+              if (typeof validateAndHighlightQty === 'function') validateAndHighlightQty(quantityInput);
+              if (typeof updateQtyButtonsState === 'function') updateQtyButtonsState(quantityInput);
+              return parseInt(quantityInput.value, 10) || 1;
+            })();
+        if (before !== String(clamped)) console.log('clamp add-to-cart qty', { before, clamped });
+        quantityInput.value = clamped;
       }
 
       if (product_ConceptSGMSettings.use_ajax_atc) {
@@ -9439,8 +9472,12 @@ _defineProperty(this, "updateProductCardSoldOutBadge", variant => {
                     console.log('DOM qty after render', domInput?.value);
                     if (domInput && Number(domInput.value) !== Number(item.quantity)) {
                       domInput.value = item.quantity;
-                      validateAndHighlightQty?.(domInput);
-                      updateQtyButtonsState?.(domInput);
+                      if (typeof clampQtyInput === 'function') {
+                        clampQtyInput(domInput);
+                      } else {
+                        validateAndHighlightQty?.(domInput);
+                        updateQtyButtonsState?.(domInput);
+                      }
                     }
                   }
                   window.Shopify.onCartUpdate(newCart, false);
