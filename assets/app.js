@@ -7040,8 +7040,9 @@ class Cart {
         const newCart = await this.changeCart(lineItem);
         this.cart = newCart;
         const cartHTML = await this.fetchCartSection();
-        this.loading.finish(() => {
-          this.renderNewCart(cartHTML);
+        this.loading.finish(async () => {
+          await this.renderNewCart(cartHTML);
+          this.applyCartQtyHelpers?.();
           window.Shopify.onCartUpdate(newCart, false);
           const newItem = newCart.items.find(_ref2 => {
             let {
@@ -7075,6 +7076,17 @@ class Cart {
         this.loading.finish();
 
         if (err?.status === 422) {
+          const newCart = await this.getCart().catch(() => null);
+          if (newCart) {
+            this.cart = newCart;
+            const cartHTML = await this.fetchCartSection().catch(() => null);
+            if (cartHTML) {
+              await this.renderNewCart(cartHTML);
+              this.applyCartQtyHelpers?.();
+              window.Shopify.onCartUpdate(newCart, false);
+            }
+          }
+
           const lineItemNode = this.getLineItemNode(lineItem);
 
           if (lineItemNode) {
@@ -7083,6 +7095,8 @@ class Cart {
               type: 'warning',
               message: sold_out_items_message
             });
+            const input = lineItemNode.querySelector(this.cartItemSelectors.qtyInput);
+            if (input) console.log('qty corrected after 422:', input.value);
           }
         }
 
@@ -7115,10 +7129,19 @@ class Cart {
       currentCartBody.replaceWith(newCartBody);
       currentCartSummary.replaceWith(newCartSummary);
       this.domNodes = queryDomNodes(this.selectors);
+      this.applyCartQtyHelpers?.();
     });
 
     _defineProperty(this, "refreshCart", async () => {
       this.cart = await this.getCart();
+    });
+
+    _defineProperty(this, "applyCartQtyHelpers", () => {
+      const inputs = this.domNodes.cartDrawer?.querySelectorAll(this.cartItemSelectors.qtyInput) || [];
+      inputs.forEach(inp => {
+        if (typeof validateAndHighlightQty === 'function') validateAndHighlightQty(inp);
+        if (typeof updateQtyButtonsState === 'function') updateQtyButtonsState(inp);
+      });
     });
 
     _defineProperty(this, "updateCartCount", cart => {
@@ -7457,6 +7480,7 @@ addEventDelegate({
     });
     this.initCartCountDown();
     this.initCartAddons();
+    this.applyCartQtyHelpers?.();
     ConceptSGMEvents.subscribe?.('ON_CART_UPDATE', cart => {
       this.cart = cart;
       this.updateCartCount(cart);
