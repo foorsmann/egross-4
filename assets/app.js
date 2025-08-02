@@ -448,6 +448,107 @@ const fetchJsonCache = function (url) {
   });
 };
 
+// Global cart fetch wrapper with 422 fallback and cache busting
+const _originalFetch = window.fetch.bind(window);
+const CART_ENDPOINTS = ['/cart/add.js', '/cart/change.js', '/cart.js', '/cart.json', '/cart/update.js'];
+function _appendNoCache(url) {
+  try {
+    const u = new URL(url, window.location.origin);
+    u.searchParams.set('nocache', Date.now().toString());
+    return u.toString();
+  } catch (e) {
+    return url;
+  }
+}
+function _getUrlAsString(resource) {
+  if (!resource) return '';
+  if (typeof resource === 'string') return resource;
+  if (typeof resource.url === 'string') return resource.url;
+  try {
+    return String(resource);
+  } catch (e) {
+    return '';
+  }
+}
+function _needsNoCache(resource) {
+  const url = _getUrlAsString(resource);
+  return CART_ENDPOINTS.some(path => url.includes(path));
+}
+function _isCartMutation(resource) {
+  const url = _getUrlAsString(resource);
+  return url.includes('/cart/add.js') || url.includes('/cart/change.js');
+}
+function _clearClientCartData() {
+  try {
+    ['localStorage', 'sessionStorage'].forEach(storeName => {
+      const store = window[storeName];
+      if (!store) return;
+      const keys = [];
+      for (let i = 0; i < store.length; i++) {
+        const key = store.key(i);
+        if (/^(cart|checkout|shopify)[-_]?/i.test(key)) keys.push(key);
+      }
+      keys.forEach(k => store.removeItem(k));
+    });
+  } catch (e) {}
+  try {
+    (document.cookie || '').split(';').forEach(cookie => {
+      const name = cookie.split('=')[0].trim();
+      if (/^(?:_?cart|cart_sig|cart_currency|_shopify_cart|_shopify_checkout_session|checkout|shopify)/i.test(name)) {
+        document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
+      }
+    });
+  } catch (e) {}
+}
+async function _handleCart422() {
+  const attempts = Number(sessionStorage.getItem('cart_reset_attempts') || '0');
+  if (attempts >= 2) {
+    console.log('Shopify cart 422 persisted after cart resets');
+    return;
+  }
+  sessionStorage.setItem('cart_reset_attempts', attempts + 1);
+  try {
+    await _originalFetch(_appendNoCache('/cart/clear.js'), { method: 'POST', credentials: 'same-origin' });
+  } catch (e) {}
+  _clearClientCartData();
+  const url = new URL(window.location.href);
+  url.searchParams.set('cart_reset', Date.now().toString());
+  if (attempts === 1) {
+    console.log('Cart cleared twice due to repeated 422 errors');
+  } else {
+    console.log('Cart cleared due to 422 error');
+  }
+  window.location.replace(url.toString());
+}
+window.fetch = async function (resource, options) {
+  let url = _getUrlAsString(resource);
+  let opts = options || {};
+  if (resource instanceof Request) {
+    opts = {
+      ...opts,
+      method: resource.method,
+      headers: resource.headers,
+      body: resource.body,
+      mode: resource.mode,
+      credentials: resource.credentials,
+      cache: resource.cache,
+      redirect: resource.redirect,
+      referrer: resource.referrer,
+      integrity: resource.integrity,
+      keepalive: resource.keepalive,
+      signal: resource.signal
+    };
+  }
+  if (_needsNoCache(resource)) {
+    url = _appendNoCache(url);
+  }
+  const res = await _originalFetch(url, opts);
+  if (_isCartMutation(resource) && res.status === 422) {
+    await _handleCart422();
+  }
+  return res;
+};
+
 /***/ }),
 
 /***/ 5118:
@@ -7032,16 +7133,30 @@ class Cart {
       } = cart_ConceptSGMStrings;
 
       try {
-        const {
-          id: key,
-          quantity
-        } = lineItem;
+        const { id: key, quantity } = lineItem;
+        const lineItemNode = this.getLineItemNode(lineItem);
+        const input = lineItemNode?.querySelector(this.cartItemSelectors.qtyInput);
+        if (input && quantity > 0) {
+          let clamped;
+          if (typeof clampQtyInput === 'function') {
+            clamped = clampQtyInput(input);
+          } else {
+            if (typeof validateAndHighlightQty === 'function') validateAndHighlightQty(input);
+            if (typeof updateQtyButtonsState === 'function') updateQtyButtonsState(input);
+            clamped = parseInt(input.value, 10) || 1;
+          }
+          if (clamped !== quantity) {
+            console.log('clamp change qty', { beforeReq: quantity, clamped });
+            lineItem.quantity = clamped;
+          }
+        }
         this.loading.start();
         const newCart = await this.changeCart(lineItem);
         this.cart = newCart;
         const cartHTML = await this.fetchCartSection();
-        this.loading.finish(() => {
-          this.renderNewCart(cartHTML);
+        this.loading.finish(async () => {
+          await this.renderNewCart(cartHTML);
+          this.applyCartQtyHelpers?.();
           window.Shopify.onCartUpdate(newCart, false);
           const newItem = newCart.items.find(_ref2 => {
             let {
@@ -7074,19 +7189,42 @@ class Cart {
       } catch (err) {
         this.loading.finish();
 
-        if (err?.status === 422) {
-          const lineItemNode = this.getLineItemNode(lineItem);
-
-          if (lineItemNode) {
-            cart_ConceptSGMTheme.Notification.show({
-              target: lineItemNode,
-              type: 'warning',
-              message: sold_out_items_message
-            });
+        const newCart = await this.getCart().catch(() => null);
+        console.log('cart after change error', newCart);
+        if (newCart) {
+          this.cart = newCart;
+          const cartHTML = await this.fetchCartSection().catch(() => null);
+          if (cartHTML) {
+            const itemHTML = cartHTML.querySelector(`.scd-item[data-id="${lineItem.id}"]`) || cartHTML.querySelector(`.scd-item[data-index="${lineItem.line}"]`);
+            const htmlInput = itemHTML?.querySelector(`[name="updates[]"]`);
+            console.log('item HTML after change error', itemHTML?.outerHTML);
+            console.log('qty from item HTML', htmlInput?.value);
+            await this.renderNewCart(cartHTML);
+            this.applyCartQtyHelpers?.();
+            window.Shopify.onCartUpdate(newCart, false);
+            this.openCartDrawer();
+            const lineItemNode = this.getLineItemNode(lineItem);
+            const expected = newCart.items.find(it => it.key === lineItem.id)?.quantity;
+            if (lineItemNode) {
+              const input = lineItemNode.querySelector(this.cartItemSelectors.qtyInput);
+              console.log('DOM qty after render', input?.value);
+              if (input && expected !== undefined && Number(input.value) !== Number(expected)) {
+                input.value = expected;
+                if (typeof clampQtyInput === 'function') {
+                  clampQtyInput(input);
+                } else {
+                  validateAndHighlightQty?.(input);
+                  updateQtyButtonsState?.(input);
+                }
+              }
+            }
           }
         }
 
         console.warn("Failed to change item quantity: ", err);
+        if (err?.status === 422) {
+          await clearCartAndReload();
+        }
       }
     });
 
@@ -7115,10 +7253,40 @@ class Cart {
       currentCartBody.replaceWith(newCartBody);
       currentCartSummary.replaceWith(newCartSummary);
       this.domNodes = queryDomNodes(this.selectors);
+      this.applyCartQtyHelpers?.();
     });
 
     _defineProperty(this, "refreshCart", async () => {
       this.cart = await this.getCart();
+    });
+
+    _defineProperty(this, "applyCartQtyHelpers", () => {
+      const sync = () => {
+        const inputs = this.domNodes.cartDrawer?.querySelectorAll('[name="updates[]"]') || [];
+        inputs.forEach(inp => {
+          const item = this.cart?.items?.find(it => String(it.key) === String(inp.dataset.id) || String(it.id) === String(inp.dataset.id));
+          if (!item) return;
+          const before = inp.value;
+          const after = String(item.quantity);
+          if (before !== after) {
+            console.log('force sync qty', { id: inp.dataset.id, before, after });
+            inp.value = after;
+          } else {
+            console.log('qty already correct', { id: inp.dataset.id, value: after });
+          }
+
+          if (typeof clampQtyInput === 'function') {
+            clampQtyInput(inp);
+          } else {
+            if (typeof validateAndHighlightQty === 'function') validateAndHighlightQty(inp);
+            if (typeof updateQtyButtonsState === 'function') updateQtyButtonsState(inp);
+          }
+        });
+      };
+
+      sync();
+      setTimeout(sync, 100);
+      setTimeout(sync, 500);
     });
 
     _defineProperty(this, "updateCartCount", cart => {
@@ -7389,17 +7557,17 @@ addEventDelegate({
     if (item) {
       const input = btn.parentElement.querySelector(this.cartItemSelectors.qtyInput);
       if (!input) return;
-
-      const before = input.value;
       if (typeof adjustQuantityHelper === 'function') {
-        adjustQuantityHelper(input, qtyChange === 'dec' ? -1 : 1, before);
+        adjustQuantityHelper(input, qtyChange === 'dec' ? -1 : 1, input.value);
       }
-
-      const quantity = parseInt(input.value, 10) || 1;
-      this.changeItemQty({
-        id,
-        quantity
-      });
+      const quantity = typeof clampQtyInput === 'function'
+        ? clampQtyInput(input)
+        : (() => {
+            if (typeof validateAndHighlightQty === 'function') validateAndHighlightQty(input);
+            if (typeof updateQtyButtonsState === 'function') updateQtyButtonsState(input);
+            return parseInt(input.value, 10) || 1;
+          })();
+      this.changeItemQty({ id, quantity });
     } else {
       console.warn(`Cart item to change quantity not found. Key: ${id}`);
     }
@@ -7409,22 +7577,33 @@ addEventDelegate({
 
 addEventDelegate({
   context: this.domNodes.cartDrawer,
+  event: 'input',
+  selector: this.cartItemSelectors.qtyInput,
+  handler: (e, input) => {
+    if (typeof clampQtyInput === 'function') {
+      clampQtyInput(input);
+    } else {
+      if (typeof validateAndHighlightQty === 'function') validateAndHighlightQty(input);
+      if (typeof updateQtyButtonsState === 'function') updateQtyButtonsState(input);
+    }
+  }
+});
+
+addEventDelegate({
+  context: this.domNodes.cartDrawer,
   event: 'change',
   selector: this.cartItemSelectors.qtyInput,
   handler: (e, input) => {
     e.preventDefault();
-    if (typeof validateAndHighlightQty === 'function') {
-      validateAndHighlightQty(input);
-    }
-    if (typeof updateQtyButtonsState === 'function') {
-      updateQtyButtonsState(input);
-    }
+    const quantity = typeof clampQtyInput === 'function'
+      ? clampQtyInput(input)
+      : (() => {
+          if (typeof validateAndHighlightQty === 'function') validateAndHighlightQty(input);
+          if (typeof updateQtyButtonsState === 'function') updateQtyButtonsState(input);
+          return parseInt(input.value, 10) || 1;
+        })();
     const { id } = input.dataset;
-    const quantity = parseInt(input.value, 10) || 1;
-    this.changeItemQty({
-      id,
-      quantity
-    });
+    this.changeItemQty({ id, quantity });
   }
 });
 
@@ -7457,6 +7636,7 @@ addEventDelegate({
     });
     this.initCartCountDown();
     this.initCartAddons();
+    this.applyCartQtyHelpers?.();
     ConceptSGMEvents.subscribe?.('ON_CART_UPDATE', cart => {
       this.cart = cart;
       this.updateCartCount(cart);
@@ -8771,6 +8951,12 @@ class Product {
         selector: this.selectors.quantityInput,
         handler: this.handleQtyInputChange
       }));
+      listeners.push((0,events/* addEventDelegate */.X)({
+        event: 'input',
+        context: this.productForm,
+        selector: this.selectors.quantityInput,
+        handler: this.handleQtyInputChange
+      }));
 
       this.listeners = listeners;
       const {
@@ -9326,31 +9512,103 @@ _defineProperty(this, "updateProductCardSoldOutBadge", variant => {
         });
       }
 
+      const { quantityInput } = this.domNodes;
+      if (quantityInput) {
+        const before = quantityInput.value;
+        const clamped = typeof clampQtyInput === 'function'
+          ? clampQtyInput(quantityInput)
+          : (() => {
+              if (typeof validateAndHighlightQty === 'function') validateAndHighlightQty(quantityInput);
+              if (typeof updateQtyButtonsState === 'function') updateQtyButtonsState(quantityInput);
+              return parseInt(quantityInput.value, 10) || 1;
+            })();
+        if (before !== String(clamped)) console.log('clamp add-to-cart qty', { before, clamped });
+        quantityInput.value = clamped;
+      }
+
       if (product_ConceptSGMSettings.use_ajax_atc) {
         e?.preventDefault?.();
         this.toggleSpinner(true); // Some 3rd apps might override the default FormData, use this code to prevent it.
 
         let formData = new FormData(this.productForm);
+        if (quantityInput) formData.set('quantity', quantityInput.value);
 
         if (typeof formData._asNative === 'function') {
           formData = formData._asNative().fd;
+          if (quantityInput) formData.set('quantity', quantityInput.value);
         }
 
         const sourceEvent = formData.get('source_event') || 'product-form';
-        this.cartAddFromForm(formData).then(r => r.json()).then(res => {
-          if (res?.status === 422) {
-            modules_product_ConceptSGMTheme.Notification.show({
-              target: this?.domNodes?.error,
-              method: 'appendChild',
-              type: 'warning',
-              message: res?.description || "Unable to add item to cart!"
-            });
+        const variantId = formData.get('id');
+        this.cartAddFromForm(formData).then(async r => {
+          const res = await r.json();
+            if (r.status === 422 || res?.status === 422) {
+              const Cart = ConceptSGMTheme?.Cart;
+            if (Cart) {
+              const newCart = await Cart.getCart().catch(() => null);
+              console.log('cart after 422 add', newCart);
+              if (newCart) {
+                Cart.cart = newCart;
+                const cartHTML = await Cart.fetchCartSection().catch(() => null);
+                if (cartHTML) {
+                  const itemHTML = cartHTML.querySelector(`.scd-item[data-id="${variantId}"]`) || cartHTML.querySelector(`[data-id="${variantId}"]`);
+                  const htmlInput = itemHTML?.querySelector(`[name="updates[]"]`);
+                  console.log('item HTML after 422 add', itemHTML?.outerHTML);
+                  console.log('qty from item HTML', htmlInput?.value);
+                  const item = newCart.items.find(it => String(it.id) === String(variantId));
+                  await Cart.renderNewCart(cartHTML);
+                  Cart.applyCartQtyHelpers?.();
+                  Cart.openCartDrawer();
+                  if (item) {
+                    const lineItemNode = Cart.getLineItemNode({ id: item.key, line: newCart.items.indexOf(item) + 1 });
+                    const domInput = lineItemNode?.querySelector(Cart.cartItemSelectors.qtyInput);
+                    console.log('DOM qty after render', domInput?.value);
+                    if (domInput && Number(domInput.value) !== Number(item.quantity)) {
+                      domInput.value = item.quantity;
+                      if (typeof clampQtyInput === 'function') {
+                        clampQtyInput(domInput);
+                      } else {
+                        validateAndHighlightQty?.(domInput);
+                        updateQtyButtonsState?.(domInput);
+                      }
+                    }
+                  }
+                  window.Shopify.onCartUpdate(newCart, false);
+                }
+              }
+            }
+              await clearCartAndReload();
           } else {
             res.source = sourceEvent;
             window.Shopify.onItemAdded(res);
           }
 
           setTimeout(() => this.toggleSpinner(false), 500);
+        }).catch(async err => {
+          const Cart = ConceptSGMTheme?.Cart;
+          if (Cart) {
+            const newCart = await Cart.getCart().catch(() => null);
+            console.log('cart after add error', newCart);
+            if (newCart) {
+              Cart.cart = newCart;
+              const cartHTML = await Cart.fetchCartSection().catch(() => null);
+              if (cartHTML) {
+                const item = newCart.items.find(it => String(it.id) === String(variantId));
+                await Cart.renderNewCart(cartHTML);
+                Cart.applyCartQtyHelpers?.();
+                Cart.openCartDrawer();
+                if (item) {
+                  const lineItemNode = Cart.getLineItemNode({ id: item.key, line: newCart.items.indexOf(item) + 1 });
+                }
+                window.Shopify.onCartUpdate(newCart, false);
+              }
+            }
+          }
+          console.warn('Failed to add item to cart:', err);
+          setTimeout(() => this.toggleSpinner(false), 500);
+          if (err?.status === 422) {
+            await clearCartAndReload();
+          }
         });
       }
     });

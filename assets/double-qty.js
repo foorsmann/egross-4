@@ -63,6 +63,11 @@
   // expunem helperii pentru a putea fi folosiți și în cart/drawer
   window.updateQtyButtonsState = updateQtyButtonsState;
   window.adjustQuantityHelper = adjustQuantity;
+  window.clampQtyInput = function(input){
+    var val = validateAndHighlightQty(input);
+    updateQtyButtonsState(input);
+    return val;
+  };
 
 var BUTTON_CLASS = 'double-qty-btn';
 
