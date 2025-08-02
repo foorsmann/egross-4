@@ -7032,10 +7032,19 @@ class Cart {
       } = cart_ConceptSGMStrings;
 
       try {
-        const {
-          id: key,
-          quantity
-        } = lineItem;
+        const { id: key, quantity } = lineItem;
+        const lineItemNode = this.getLineItemNode(lineItem);
+        const input = lineItemNode?.querySelector(this.cartItemSelectors.qtyInput);
+        if (input && quantity > 0) {
+          const before = input.value;
+          if (typeof validateAndHighlightQty === 'function') validateAndHighlightQty(input);
+          if (typeof updateQtyButtonsState === 'function') updateQtyButtonsState(input);
+          const clamped = parseInt(input.value, 10) || 1;
+          if (clamped !== quantity) {
+            console.log('clamp change qty', { beforeReq: quantity, clamped });
+            lineItem.quantity = clamped;
+          }
+        }
         this.loading.start();
         const newCart = await this.changeCart(lineItem);
         this.cart = newCart;
@@ -7443,7 +7452,8 @@ addEventDelegate({
       if (typeof adjustQuantityHelper === 'function') {
         adjustQuantityHelper(input, qtyChange === 'dec' ? -1 : 1, before);
       }
-
+      if (typeof validateAndHighlightQty === 'function') validateAndHighlightQty(input);
+      if (typeof updateQtyButtonsState === 'function') updateQtyButtonsState(input);
       const quantity = parseInt(input.value, 10) || 1;
       this.changeItemQty({
         id,
@@ -9376,14 +9386,25 @@ _defineProperty(this, "updateProductCardSoldOutBadge", variant => {
         });
       }
 
+      const { quantityInput } = this.domNodes;
+      if (quantityInput) {
+        const before = quantityInput.value;
+        if (typeof validateAndHighlightQty === 'function') validateAndHighlightQty(quantityInput);
+        if (typeof updateQtyButtonsState === 'function') updateQtyButtonsState(quantityInput);
+        const clamped = quantityInput.value;
+        if (before !== clamped) console.log('clamp add-to-cart qty', { before, clamped });
+      }
+
       if (product_ConceptSGMSettings.use_ajax_atc) {
         e?.preventDefault?.();
         this.toggleSpinner(true); // Some 3rd apps might override the default FormData, use this code to prevent it.
 
         let formData = new FormData(this.productForm);
+        if (quantityInput) formData.set('quantity', quantityInput.value);
 
         if (typeof formData._asNative === 'function') {
           formData = formData._asNative().fd;
+          if (quantityInput) formData.set('quantity', quantityInput.value);
         }
 
         const sourceEvent = formData.get('source_event') || 'product-form';
