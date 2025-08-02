@@ -59,10 +59,28 @@
   // păstrăm pentru compatibilitate cu codul existent
   var updateIncreaseBtnState = updateQtyButtonsState;
 
+  function clampQtyInput(target, variantId){
+    if(target && target.tagName === 'INPUT'){
+      return validateAndHighlightQty(target);
+    }
+    var val = parseInt(target,10);
+    if(isNaN(val) || val < 1) val = 1;
+    if(variantId){
+      var input = document.querySelector('[data-variant-id="'+variantId+'"]');
+      if(input){
+        input.value = val;
+        val = validateAndHighlightQty(input);
+        updateQtyButtonsState(input);
+      }
+    }
+    return val;
+  }
+
   window.validateAndHighlightQty = validateAndHighlightQty;
   // expunem helperii pentru a putea fi folosiți și în cart/drawer
   window.updateQtyButtonsState = updateQtyButtonsState;
   window.adjustQuantityHelper = adjustQuantity;
+  window.clampQtyInput = clampQtyInput;
 
 var BUTTON_CLASS = 'double-qty-btn';
 
@@ -125,6 +143,21 @@ var BUTTON_CLASS = 'double-qty-btn';
       updateQtyButtonsState(input);
       syncOtherQtyInputs(input);
     });
+  }
+
+  var qtyObserver;
+  function observeQtyInputs(){
+    if(qtyObserver) return;
+    qtyObserver = new MutationObserver(function(mutations){
+      mutations.forEach(function(m){
+        if(m.addedNodes && m.addedNodes.length){
+          applyMinQty();
+          attachQtyInputListeners();
+          attachQtyButtonListeners();
+        }
+      });
+    });
+    qtyObserver.observe(document.body,{childList:true,subtree:true});
   }
 
   // Nu validăm logică pentru cart/drawer (lăsăm tema să o gestioneze separat!)
@@ -256,6 +289,7 @@ var BUTTON_CLASS = 'double-qty-btn';
     initDoubleQtyButtons();
     attachQtyInputListeners();
     attachQtyButtonListeners();
+    observeQtyInputs();
   }
   document.addEventListener('DOMContentLoaded', initAll);
   window.addEventListener('shopify:section:load', initAll);
