@@ -38,6 +38,7 @@ template-{{ template.name | handle }} {{ template.name }}-{{ template.suffix }} 
   -%}
 
   {% render 'critical-css' %}
+  <script src="{{ 'cart-request-guard.js' | asset_url }}" defer="defer"></script>
   {% render 'critical-scripts' %}
   {% render 'custom-code-head' %}
 
@@ -46,7 +47,6 @@ template-{{ template.name | handle }} {{ template.name }}-{{ template.suffix }} 
 
   {% render 'style-tags' %}
 
-  <script src="{{ 'cart-request-guard.js' | asset_url }}" defer="defer"></script>
   <script src="{{ 'theme-global.js' | asset_url }}" defer="defer"></script>
   <script src="{{ 'product-form.min.js' | asset_url }}" defer="defer"></script>
   <script src="{{ 'lazy-image.min.js' | asset_url }}" defer="defer"></script>
