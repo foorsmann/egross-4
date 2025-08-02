@@ -3318,6 +3318,8 @@ class QuickView {
         this.modal.open();
         this.toggleLoading(this.target, false);
         this.isOpen = true;
+        // trigger quantity helpers for quickview
+        window.dispatchEvent(new Event('shopify:product:updated'));
       });
 
       if (firstModel) {
