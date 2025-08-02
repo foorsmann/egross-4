@@ -3318,6 +3318,13 @@ class QuickView {
         this.modal.open();
         this.toggleLoading(this.target, false);
         this.isOpen = true;
+        // ensure quick view qty selector matches product page behaviour
+        var quickViewQty = this.modalContent.querySelectorAll('input[data-quantity-input]');
+        quickViewQty.forEach(function(input){
+          if(window.validateAndHighlightQty) validateAndHighlightQty(input);
+          if(window.updateQtyButtonsState) updateQtyButtonsState(input);
+        });
+        window.dispatchEvent(new Event('shopify:product:updated'));
       });
 
       if (firstModel) {

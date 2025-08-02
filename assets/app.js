@@ -7115,6 +7115,8 @@ class Cart {
       currentCartBody.replaceWith(newCartBody);
       currentCartSummary.replaceWith(newCartSummary);
       this.domNodes = queryDomNodes(this.selectors);
+      // reinit quantity helpers so minus buttons respect min quantity in cart drawer and cart page
+      window.dispatchEvent(new Event('shopify:cart:updated'));
     });
 
     _defineProperty(this, "refreshCart", async () => {
@@ -7173,6 +7175,8 @@ class Cart {
           !this.scrollHandlerAdded && this.addScrollHandler();
         });
         ConceptSGMEvents.emit('ON_OPEN_DRAWER_CART', this.cart);
+        // reinit quantity buttons so minus stays disabled below min when drawer opens
+        window.dispatchEvent(new Event('shopify:cart:updated'));
       }
     });
 
