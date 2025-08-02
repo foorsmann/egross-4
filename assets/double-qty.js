@@ -260,12 +260,13 @@ var BUTTON_CLASS = 'double-qty-btn';
       input.addEventListener('input', updateBtnState);
       input.addEventListener('change', updateBtnState);
 
-        btn.addEventListener('click', function(e){
-          e.preventDefault();
-          e.stopImmediatePropagation();
-          adjustQuantity(input, 1);
-          updateBtnState();
-        });
+      btn.addEventListener('click', function (e) {
+  e.preventDefault();
+  e.stopImmediatePropagation();
+  adjustQuantity(input, 1);
+  updateBtnState();
+});
+
 
       btn.addEventListener('focus', function(){ btn.classList.add('focus'); });
       btn.addEventListener('blur', function(){ btn.classList.remove('focus'); });
