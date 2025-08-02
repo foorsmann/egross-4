@@ -1235,19 +1235,6 @@ if (!customElements.get('sticky-atc')) {
         this.observeTarget = this.productFormActions;
       });
 
-      _defineProperty(this, "showExceededQty", (input, attempted) => {
-        const wrapper = input?.closest('.quantity-input');
-        if (!wrapper) return;
-        wrapper.dataset.overValue = attempted;
-        wrapper.classList.add('qty-over-limit');
-        const reset = () => {
-          wrapper.classList.remove('qty-over-limit');
-          wrapper.removeAttribute('data-over-value');
-          input.removeEventListener('input', reset);
-        };
-        input.addEventListener('input', reset);
-      });
-
       this.selectors = {
         prodTitle: '.psa__title',
         mainImage: '.spc__main-img',
@@ -1353,7 +1340,9 @@ if (!customElements.get('sticky-atc')) {
       const formData = new FormData(this.form);
       const variantId = parseInt(formData.get('id'), 10);
       const requestedQty = parseInt(formData.get('quantity')) || 1;
-      const maxQty = parseInt(this.form.querySelector('[name="quantity"]')?.max) || Infinity;
+      const qtyInput = this.form.querySelector('[name="quantity"]');
+      const maxQty = parseInt(qtyInput?.max) || Infinity;
+      let resetQty = false;
 
       let cartQty = 0;
       try {
@@ -1370,10 +1359,9 @@ if (!customElements.get('sticky-atc')) {
       }
       if (requestedQty > availableToAdd) {
         formData.set('quantity', availableToAdd);
-        const qtyInput = this.form.querySelector('[name="quantity"]');
         if (qtyInput) {
           qtyInput.value = availableToAdd;
-          this.showExceededQty(qtyInput, requestedQty);
+          resetQty = true;
         }
       }
 
@@ -1427,6 +1415,9 @@ if (!customElements.get('sticky-atc')) {
             } else {
               window.ConceptSGMEvents.emit('ON_ITEM_ADDED', body);
               window.Shopify.onItemAdded(body);
+              if (resetQty && qtyInput) {
+                qtyInput.value = 0;
+              }
             }
           })
           .catch(err => {
