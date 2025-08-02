@@ -26,11 +26,12 @@
       input.style.color = '';
       return;
     }
+    var min = input.min ? parseInt(input.min,10) : 1;
     var step = parseInt(input.getAttribute('data-min-qty'), 10) || parseInt(input.step,10) || 1;
     var max = input.max ? parseInt(input.max, 10) : Infinity;
     var val = parseInt(input.value, 10);
-    if(isNaN(val)) val = 1;
-    val = clampAndSnap(val, step, 1, max, false);
+    if(isNaN(val)) val = min;
+    val = clampAndSnap(val, step, min, max, false);
     input.value = val;
     if(val >= max){
       input.classList.add('text-red-600');
