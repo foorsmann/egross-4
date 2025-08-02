@@ -448,6 +448,27 @@ const fetchJsonCache = function (url) {
   });
 };
 
+// Global 422 fallback: clear cart and reload page
+const _originalFetch = window.fetch.bind(window);
+let _cart422Triggered = false;
+async function clearCartAndReload() {
+  if (_cart422Triggered) return;
+  _cart422Triggered = true;
+  try {
+    await _originalFetch('/cart/clear.js', { method: 'POST' });
+  } catch (e) {}
+  window.location.reload();
+}
+window.fetch = (...args) => _originalFetch(...args).then(res => {
+  try {
+    const url = (typeof args[0] === 'string' ? args[0] : args[0]?.url) || res.url || '';
+    if (res.status === 422 && (url.includes('/cart/add.js') || url.includes('/cart/change.js'))) {
+      setTimeout(clearCartAndReload, 0);
+    }
+  } catch (e) {}
+  return res;
+});
+
 /***/ }),
 
 /***/ 5118:
@@ -7105,11 +7126,6 @@ class Cart {
             const lineItemNode = this.getLineItemNode(lineItem);
             const expected = newCart.items.find(it => it.key === lineItem.id)?.quantity;
             if (lineItemNode) {
-              cart_ConceptSGMTheme.Notification.show({
-                target: lineItemNode,
-                type: 'warning',
-                message: not_enough_item_message.replace('__inventory_quantity__', expected ?? 0)
-              });
               const input = lineItemNode.querySelector(this.cartItemSelectors.qtyInput);
               console.log('DOM qty after render', input?.value);
               if (input && expected !== undefined && Number(input.value) !== Number(expected)) {
@@ -7126,6 +7142,9 @@ class Cart {
         }
 
         console.warn("Failed to change item quantity: ", err);
+        if (err?.status === 422) {
+          await clearCartAndReload();
+        }
       }
     });
 
@@ -9443,14 +9462,8 @@ _defineProperty(this, "updateProductCardSoldOutBadge", variant => {
         const variantId = formData.get('id');
         this.cartAddFromForm(formData).then(async r => {
           const res = await r.json();
-          if (r.status === 422 || res?.status === 422) {
-            modules_product_ConceptSGMTheme.Notification.show({
-              target: this?.domNodes?.error,
-              method: 'appendChild',
-              type: 'warning',
-              message: res?.description || "Unable to add item to cart!"
-            });
-            const Cart = ConceptSGMTheme?.Cart;
+            if (r.status === 422 || res?.status === 422) {
+              const Cart = ConceptSGMTheme?.Cart;
             if (Cart) {
               const newCart = await Cart.getCart().catch(() => null);
               console.log('cart after 422 add', newCart);
@@ -9479,16 +9492,12 @@ _defineProperty(this, "updateProductCardSoldOutBadge", variant => {
                         updateQtyButtonsState?.(domInput);
                       }
                     }
-                    modules_product_ConceptSGMTheme.Notification.show({
-                      target: lineItemNode,
-                      type: 'warning',
-                      message: product_ConceptSGMStrings.not_enough_item_message.replace('__inventory_quantity__', item.quantity)
-                    });
                   }
                   window.Shopify.onCartUpdate(newCart, false);
                 }
               }
             }
+              await clearCartAndReload();
           } else {
             res.source = sourceEvent;
             window.Shopify.onItemAdded(res);
@@ -9510,11 +9519,6 @@ _defineProperty(this, "updateProductCardSoldOutBadge", variant => {
                 Cart.openCartDrawer();
                 if (item) {
                   const lineItemNode = Cart.getLineItemNode({ id: item.key, line: newCart.items.indexOf(item) + 1 });
-                  modules_product_ConceptSGMTheme.Notification.show({
-                    target: lineItemNode,
-                    type: 'warning',
-                    message: product_ConceptSGMStrings.not_enough_item_message.replace('__inventory_quantity__', item.quantity)
-                  });
                 }
                 window.Shopify.onCartUpdate(newCart, false);
               }
@@ -9522,6 +9526,9 @@ _defineProperty(this, "updateProductCardSoldOutBadge", variant => {
           }
           console.warn('Failed to add item to cart:', err);
           setTimeout(() => this.toggleSpinner(false), 500);
+          if (err?.status === 422) {
+            await clearCartAndReload();
+          }
         });
       }
     });
