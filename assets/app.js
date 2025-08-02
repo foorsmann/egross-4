@@ -7175,6 +7175,8 @@ class Cart {
           !this.scrollHandlerAdded && this.addScrollHandler();
         });
         ConceptSGMEvents.emit('ON_OPEN_DRAWER_CART', this.cart);
+        // reinit quantity buttons so minus stays disabled below min when drawer opens
+        window.dispatchEvent(new Event('shopify:cart:updated'));
       }
     });
 
