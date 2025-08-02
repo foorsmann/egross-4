@@ -7077,26 +7077,34 @@ class Cart {
 
         if (err?.status === 422) {
           const newCart = await this.getCart().catch(() => null);
+          console.log('cart after 422 change', newCart);
           if (newCart) {
             this.cart = newCart;
             const cartHTML = await this.fetchCartSection().catch(() => null);
             if (cartHTML) {
+              const htmlInput = cartHTML.querySelector(`[name="updates[]"][data-id="${lineItem.id}"]`);
+              console.log('HTML after 422 change quantity', cartHTML.outerHTML);
+              console.log('qty from HTML', htmlInput?.value);
               await this.renderNewCart(cartHTML);
               this.applyCartQtyHelpers?.();
               window.Shopify.onCartUpdate(newCart, false);
+              const lineItemNode = this.getLineItemNode(lineItem);
+              const expected = newCart.items.find(it => it.key === lineItem.id)?.quantity;
+              if (lineItemNode) {
+                cart_ConceptSGMTheme.Notification.show({
+                  target: lineItemNode,
+                  type: 'warning',
+                  message: sold_out_items_message
+                });
+                const input = lineItemNode.querySelector(this.cartItemSelectors.qtyInput);
+                console.log('DOM qty after render', input?.value);
+                if (input && expected !== undefined && Number(input.value) !== Number(expected)) {
+                  input.value = expected;
+                  validateAndHighlightQty?.(input);
+                  updateQtyButtonsState?.(input);
+                }
+              }
             }
-          }
-
-          const lineItemNode = this.getLineItemNode(lineItem);
-
-          if (lineItemNode) {
-            cart_ConceptSGMTheme.Notification.show({
-              target: lineItemNode,
-              type: 'warning',
-              message: sold_out_items_message
-            });
-            const input = lineItemNode.querySelector(this.cartItemSelectors.qtyInput);
-            if (input) console.log('qty corrected after 422:', input.value);
           }
         }
 
@@ -9361,14 +9369,44 @@ _defineProperty(this, "updateProductCardSoldOutBadge", variant => {
         }
 
         const sourceEvent = formData.get('source_event') || 'product-form';
-        this.cartAddFromForm(formData).then(r => r.json()).then(res => {
-          if (res?.status === 422) {
+        const variantId = formData.get('id');
+        this.cartAddFromForm(formData).then(async r => {
+          const res = await r.json();
+          if (r.status === 422 || res?.status === 422) {
             modules_product_ConceptSGMTheme.Notification.show({
               target: this?.domNodes?.error,
               method: 'appendChild',
               type: 'warning',
               message: res?.description || "Unable to add item to cart!"
             });
+            const Cart = ConceptSGMTheme?.Cart;
+            if (Cart) {
+              const newCart = await Cart.getCart().catch(() => null);
+              console.log('cart after 422 add', newCart);
+              if (newCart) {
+                Cart.cart = newCart;
+                const cartHTML = await Cart.fetchCartSection().catch(() => null);
+                if (cartHTML) {
+                  console.log('HTML after 422 add', cartHTML.outerHTML);
+                  const item = newCart.items.find(it => String(it.id) === String(variantId));
+                  const htmlInput = item ? cartHTML.querySelector(`[name="updates[]"][data-id="${item.key}"]`) : null;
+                  console.log('qty from HTML', htmlInput?.value);
+                  await Cart.renderNewCart(cartHTML);
+                  Cart.applyCartQtyHelpers?.();
+                  if (item) {
+                    const lineItemNode = Cart.getLineItemNode({ id: item.key, line: newCart.items.indexOf(item) + 1 });
+                    const domInput = lineItemNode?.querySelector(Cart.cartItemSelectors.qtyInput);
+                    console.log('DOM qty after render', domInput?.value);
+                    if (domInput && Number(domInput.value) !== Number(item.quantity)) {
+                      domInput.value = item.quantity;
+                      validateAndHighlightQty?.(domInput);
+                      updateQtyButtonsState?.(domInput);
+                    }
+                  }
+                  window.Shopify.onCartUpdate(newCart, false);
+                }
+              }
+            }
           } else {
             res.source = sourceEvent;
             window.Shopify.onItemAdded(res);
