@@ -7088,38 +7088,37 @@ class Cart {
       } catch (err) {
         this.loading.finish();
 
-        if (err?.status === 422) {
-          const newCart = await this.getCart().catch(() => null);
-          console.log('cart after 422 change', newCart);
-          if (newCart) {
-            this.cart = newCart;
-            const cartHTML = await this.fetchCartSection().catch(() => null);
-            if (cartHTML) {
-              const itemHTML = cartHTML.querySelector(`.scd-item[data-id="${lineItem.id}"]`) || cartHTML.querySelector(`.scd-item[data-index="${lineItem.line}"]`);
-              const htmlInput = itemHTML?.querySelector(`[name="updates[]"]`);
-              console.log('item HTML after 422 change', itemHTML?.outerHTML);
-              console.log('qty from item HTML', htmlInput?.value);
-              await this.renderNewCart(cartHTML);
-              this.applyCartQtyHelpers?.();
-              window.Shopify.onCartUpdate(newCart, false);
-              const lineItemNode = this.getLineItemNode(lineItem);
-              const expected = newCart.items.find(it => it.key === lineItem.id)?.quantity;
-              if (lineItemNode) {
-                cart_ConceptSGMTheme.Notification.show({
-                  target: lineItemNode,
-                  type: 'warning',
-                  message: sold_out_items_message
-                });
-                const input = lineItemNode.querySelector(this.cartItemSelectors.qtyInput);
-                console.log('DOM qty after render', input?.value);
-                if (input && expected !== undefined && Number(input.value) !== Number(expected)) {
-                  input.value = expected;
-                  if (typeof clampQtyInput === 'function') {
-                    clampQtyInput(input);
-                  } else {
-                    validateAndHighlightQty?.(input);
-                    updateQtyButtonsState?.(input);
-                  }
+        const newCart = await this.getCart().catch(() => null);
+        console.log('cart after change error', newCart);
+        if (newCart) {
+          this.cart = newCart;
+          const cartHTML = await this.fetchCartSection().catch(() => null);
+          if (cartHTML) {
+            const itemHTML = cartHTML.querySelector(`.scd-item[data-id="${lineItem.id}"]`) || cartHTML.querySelector(`.scd-item[data-index="${lineItem.line}"]`);
+            const htmlInput = itemHTML?.querySelector(`[name="updates[]"]`);
+            console.log('item HTML after change error', itemHTML?.outerHTML);
+            console.log('qty from item HTML', htmlInput?.value);
+            await this.renderNewCart(cartHTML);
+            this.applyCartQtyHelpers?.();
+            window.Shopify.onCartUpdate(newCart, false);
+            this.openCartDrawer();
+            const lineItemNode = this.getLineItemNode(lineItem);
+            const expected = newCart.items.find(it => it.key === lineItem.id)?.quantity;
+            if (lineItemNode) {
+              cart_ConceptSGMTheme.Notification.show({
+                target: lineItemNode,
+                type: 'warning',
+                message: not_enough_item_message.replace('__inventory_quantity__', expected ?? 0)
+              });
+              const input = lineItemNode.querySelector(this.cartItemSelectors.qtyInput);
+              console.log('DOM qty after render', input?.value);
+              if (input && expected !== undefined && Number(input.value) !== Number(expected)) {
+                input.value = expected;
+                if (typeof clampQtyInput === 'function') {
+                  clampQtyInput(input);
+                } else {
+                  validateAndHighlightQty?.(input);
+                  updateQtyButtonsState?.(input);
                 }
               }
             }
@@ -9452,7 +9451,7 @@ _defineProperty(this, "updateProductCardSoldOutBadge", variant => {
               message: res?.description || "Unable to add item to cart!"
             });
             const Cart = ConceptSGMTheme?.Cart;
-              if (Cart) {
+            if (Cart) {
               const newCart = await Cart.getCart().catch(() => null);
               console.log('cart after 422 add', newCart);
               if (newCart) {
@@ -9466,6 +9465,7 @@ _defineProperty(this, "updateProductCardSoldOutBadge", variant => {
                   const item = newCart.items.find(it => String(it.id) === String(variantId));
                   await Cart.renderNewCart(cartHTML);
                   Cart.applyCartQtyHelpers?.();
+                  Cart.openCartDrawer();
                   if (item) {
                     const lineItemNode = Cart.getLineItemNode({ id: item.key, line: newCart.items.indexOf(item) + 1 });
                     const domInput = lineItemNode?.querySelector(Cart.cartItemSelectors.qtyInput);
@@ -9479,6 +9479,11 @@ _defineProperty(this, "updateProductCardSoldOutBadge", variant => {
                         updateQtyButtonsState?.(domInput);
                       }
                     }
+                    modules_product_ConceptSGMTheme.Notification.show({
+                      target: lineItemNode,
+                      type: 'warning',
+                      message: product_ConceptSGMStrings.not_enough_item_message.replace('__inventory_quantity__', item.quantity)
+                    });
                   }
                   window.Shopify.onCartUpdate(newCart, false);
                 }
@@ -9489,6 +9494,33 @@ _defineProperty(this, "updateProductCardSoldOutBadge", variant => {
             window.Shopify.onItemAdded(res);
           }
 
+          setTimeout(() => this.toggleSpinner(false), 500);
+        }).catch(async err => {
+          const Cart = ConceptSGMTheme?.Cart;
+          if (Cart) {
+            const newCart = await Cart.getCart().catch(() => null);
+            console.log('cart after add error', newCart);
+            if (newCart) {
+              Cart.cart = newCart;
+              const cartHTML = await Cart.fetchCartSection().catch(() => null);
+              if (cartHTML) {
+                const item = newCart.items.find(it => String(it.id) === String(variantId));
+                await Cart.renderNewCart(cartHTML);
+                Cart.applyCartQtyHelpers?.();
+                Cart.openCartDrawer();
+                if (item) {
+                  const lineItemNode = Cart.getLineItemNode({ id: item.key, line: newCart.items.indexOf(item) + 1 });
+                  modules_product_ConceptSGMTheme.Notification.show({
+                    target: lineItemNode,
+                    type: 'warning',
+                    message: product_ConceptSGMStrings.not_enough_item_message.replace('__inventory_quantity__', item.quantity)
+                  });
+                }
+                window.Shopify.onCartUpdate(newCart, false);
+              }
+            }
+          }
+          console.warn('Failed to add item to cart:', err);
           setTimeout(() => this.toggleSpinner(false), 500);
         });
       }
