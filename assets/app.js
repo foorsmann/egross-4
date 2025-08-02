@@ -448,26 +448,93 @@ const fetchJsonCache = function (url) {
   });
 };
 
-// Global 422 fallback: clear cart and reload page
+// Global cart fetch wrapper with 422 fallback and cache busting
 const _originalFetch = window.fetch.bind(window);
-let _cart422Triggered = false;
-async function clearCartAndReload() {
-  if (_cart422Triggered) return;
-  _cart422Triggered = true;
+const CART_ENDPOINTS = ['/cart/add.js', '/cart/change.js', '/cart.js', '/cart.json', '/cart/update.js'];
+function _appendNoCache(url) {
   try {
-    await _originalFetch('/cart/clear.js', { method: 'POST' });
-  } catch (e) {}
-  window.location.reload();
+    const u = new URL(url, window.location.origin);
+    u.searchParams.set('nocache', Date.now().toString());
+    return u.toString();
+  } catch (e) {
+    return url;
+  }
 }
-window.fetch = (...args) => _originalFetch(...args).then(res => {
+function _needsNoCache(url) {
+  return CART_ENDPOINTS.some(path => url.includes(path));
+}
+function _isCartMutation(url) {
+  return url.includes('/cart/add.js') || url.includes('/cart/change.js');
+}
+function _clearClientCartData() {
   try {
-    const url = (typeof args[0] === 'string' ? args[0] : args[0]?.url) || res.url || '';
-    if (res.status === 422 && (url.includes('/cart/add.js') || url.includes('/cart/change.js'))) {
-      setTimeout(clearCartAndReload, 0);
-    }
+    ['localStorage', 'sessionStorage'].forEach(storeName => {
+      const store = window[storeName];
+      if (!store) return;
+      const keys = [];
+      for (let i = 0; i < store.length; i++) {
+        const key = store.key(i);
+        if (/^(cart|checkout|shopify)[-_]?/i.test(key)) keys.push(key);
+      }
+      keys.forEach(k => store.removeItem(k));
+    });
   } catch (e) {}
+  try {
+    (document.cookie || '').split(';').forEach(cookie => {
+      const name = cookie.split('=')[0].trim();
+      if (/^(?:_?cart|cart_sig|cart_currency|_shopify_cart|_shopify_checkout_session|checkout|shopify)/i.test(name)) {
+        document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
+      }
+    });
+  } catch (e) {}
+}
+async function _handleCart422() {
+  const attempts = Number(sessionStorage.getItem('cart_reset_attempts') || '0');
+  if (attempts >= 2) {
+    console.log('Shopify cart 422 persisted after cart resets');
+    return;
+  }
+  sessionStorage.setItem('cart_reset_attempts', attempts + 1);
+  try {
+    await _originalFetch(_appendNoCache('/cart/clear.js'), { method: 'POST', credentials: 'same-origin' });
+  } catch (e) {}
+  _clearClientCartData();
+  const url = new URL(window.location.href);
+  url.searchParams.set('cart_reset', Date.now().toString());
+  if (attempts === 1) {
+    console.log('Cart cleared twice due to repeated 422 errors');
+  } else {
+    console.log('Cart cleared due to 422 error');
+  }
+  window.location.replace(url.toString());
+}
+window.fetch = async function (resource, options) {
+  let url = typeof resource === 'string' ? resource : resource.url;
+  let opts = options || {};
+  if (resource instanceof Request) {
+    opts = Object.assign({
+      method: resource.method,
+      headers: resource.headers,
+      body: resource.body,
+      mode: resource.mode,
+      credentials: resource.credentials,
+      cache: resource.cache,
+      redirect: resource.redirect,
+      referrer: resource.referrer,
+      integrity: resource.integrity,
+      keepalive: resource.keepalive,
+      signal: resource.signal
+    }, opts);
+  }
+  if (_needsNoCache(url)) {
+    url = _appendNoCache(url);
+  }
+  const res = await _originalFetch(url, opts);
+  if (_isCartMutation(url) && res.status === 422) {
+    await _handleCart422();
+  }
   return res;
-});
+};
 
 /***/ }),
 
