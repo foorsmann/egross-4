@@ -9529,7 +9529,9 @@ _defineProperty(this, "updateProductCardSoldOutBadge", variant => {
               const variantId = this.productData?.selected_variant?.id;
               if (variantId) {
                 const item = Cart.cart.items.find(i => i.variant_id === variantId);
-                const node = Cart.domNodes.cartDrawerItems?.querySelector(`.scd-item[data-id="${item?.key}"]`);
+                const node = item
+                  ? Cart.domNodes.cartDrawerItems?.querySelector(`.scd-item[data-id="${item.key}"]`)
+                  : null;
                 const input = node?.querySelector(Cart.cartItemSelectors.qtyInput);
                 if (input && item) {
                   input.value = item.quantity;
