@@ -394,41 +394,171 @@ function clampQty(value, id) {
   return v;
 }
 
-function sanitizeCartRequestOptions(opts) {
-  opts = opts || {};
-  if (opts.body instanceof FormData) {
-    Array.from(opts.body.keys()).forEach(key => {
-      if (key === 'quantity') {
-        opts.body.set(key, clampQty(opts.body.get(key)));
-      } else {
-        const match = key.match(/^items\[(\d+)\]\[quantity\]$/);
-        if (match) {
-          opts.body.set(key, clampQty(opts.body.get(key)));
+const variantStockCache = new Map();
+async function getAvailableStockForVariant(variantId) {
+  if (variantStockCache.has(variantId)) return variantStockCache.get(variantId);
+  try {
+    const res = await originalFetch(`/variants/${variantId}.json`);
+    if (res.ok) {
+      const json = await res.json();
+      const qty = json?.variant?.inventory_quantity;
+      variantStockCache.set(variantId, qty);
+      return qty;
+    }
+  } catch (e) {}
+
+  try {
+    const cartItem = window.ConceptSGMTheme?.Cart?.cart?.items?.find(i => i.id === variantId);
+    const handle = cartItem?.handle;
+    if (handle) {
+      const res2 = await originalFetch(`/products/${handle}.js`);
+      if (res2.ok) {
+        const prod = await res2.json();
+        const variant = prod?.variants?.find(v => v.id == variantId);
+        if (variant && typeof variant.inventory_quantity !== 'undefined') {
+          variantStockCache.set(variantId, variant.inventory_quantity);
+          return variant.inventory_quantity;
         }
       }
-    });
+    }
+  } catch (e) {}
+  return Infinity;
+}
+
+async function prepareCartRequest(url, opts) {
+  opts = opts || {};
+  const isAdd = /\/cart\/add\.js/.test(url);
+  const isChange = /\/cart\/change\.js/.test(url);
+  if (!isAdd && !isChange) return opts;
+
+  let cart;
+  try {
+    cart = await fetchJSON('/cart.json');
+  } catch (e) {}
+
+  const items = [];
+  if (opts.body instanceof FormData) {
+    const fd = opts.body;
+    if (isAdd) {
+      if (fd.has('id')) {
+        const id = parseInt(fd.get('id'), 10);
+        const qKey = 'quantity';
+        items.push({ id, qty: clampQty(fd.get(qKey), id), qKey, fd, single: true });
+      } else {
+        const map = {};
+        Array.from(fd.keys()).forEach(k => {
+          const m = k.match(/^items\[(\d+)\]\[(id|quantity)\]$/);
+          if (m) {
+            map[m[1]] = map[m[1]] || { fd };
+            map[m[1]][m[2]] = k;
+          }
+        });
+        Object.values(map).forEach(obj => {
+          const id = parseInt(fd.get(obj.id), 10);
+          const qKey = obj.quantity;
+          const qty = clampQty(fd.get(qKey), id);
+          items.push({ id, qty, qKey, idKey: obj.id, fd });
+        });
+      }
+    } else if (isChange) {
+      let id = null;
+      const qKey = 'quantity';
+      if (fd.has('id')) {
+        id = parseInt(fd.get('id'), 10);
+      } else if (fd.has('line') && cart?.items?.length) {
+        const line = parseInt(fd.get('line'), 10) - 1;
+        id = cart.items[line]?.variant_id;
+      }
+      if (id != null) {
+        items.push({ id, qty: clampQty(fd.get(qKey), id), qKey, fd, change: true });
+      }
+    }
   } else if (typeof opts.body === 'string') {
     try {
       const data = JSON.parse(opts.body);
-      if (Array.isArray(data.items)) {
-        data.items = data.items.map(item => ({
-          ...item,
-          quantity: clampQty(item.quantity, item.id || item.variant_id)
-        }));
-      } else if (data && typeof data.quantity !== 'undefined') {
-        data.quantity = clampQty(data.quantity, data.id || data.variant_id);
+      opts._payload = data;
+      if (isAdd) {
+        if (Array.isArray(data.items)) {
+          data.items.forEach((it, i) => {
+            const id = parseInt(it.id || it.variant_id, 10);
+            items.push({ id, qty: clampQty(it.quantity, id), data, index: i });
+          });
+        } else if (typeof data.id !== 'undefined') {
+          const id = parseInt(data.id || data.variant_id, 10);
+          items.push({ id, qty: clampQty(data.quantity, id), data, single: true });
+        }
+      } else if (isChange) {
+        let id = null;
+        if (typeof data.id !== 'undefined' || typeof data.variant_id !== 'undefined') {
+          id = parseInt(data.id || data.variant_id, 10);
+        } else if (typeof data.line !== 'undefined' && cart?.items?.length) {
+          id = cart.items[parseInt(data.line, 10) - 1]?.variant_id;
+        }
+        if (id != null) {
+          items.push({ id, qty: clampQty(data.quantity, id), data, change: true });
+        }
       }
-      opts.body = JSON.stringify(data);
     } catch (e) {}
   }
 
+  const finalItems = [];
+  for (const it of items) {
+    const stock = await getAvailableStockForVariant(it.id);
+    const existing = cart?.items?.find(i => i.variant_id === it.id)?.quantity || 0;
+    let newQty;
+    if (isAdd) {
+      const allowed = Math.max(stock - existing, 0);
+      newQty = Math.min(it.qty, allowed);
+      if (newQty > 0) {
+        if (it.fd) it.fd.set(it.qKey, newQty);
+        else if (it.data && Array.isArray(it.data.items)) it.data.items[it.index].quantity = newQty;
+        else if (it.data) it.data.quantity = newQty;
+        finalItems.push(true);
+      } else {
+        it.skip = true;
+        if (it.fd && !it.single) {
+          it.fd.delete(it.qKey);
+          it.idKey && it.fd.delete(it.idKey);
+        }
+      }
+    } else {
+      // change.js sends final quantity
+      const allowed = stock;
+      newQty = Math.min(it.qty, allowed);
+      if (it.qty <= 0) {
+        if (it.fd) it.fd.set(it.qKey, 0); else if (it.data) it.data.quantity = 0;
+        finalItems.push(true);
+      } else if (newQty > 0 && newQty !== existing) {
+        if (it.fd) it.fd.set(it.qKey, newQty); else if (it.data) it.data.quantity = newQty;
+        finalItems.push(true);
+      }
+    }
+  }
+
+  if (opts._payload && Array.isArray(opts._payload.items)) {
+    opts._payload.items = opts._payload.items.filter((_, idx) => {
+      const obj = items.find(it => it.index === idx);
+      return !obj || !obj.skip;
+    });
+  }
+
+  if (finalItems.length === 0) return null;
+  if (opts._payload) opts.body = JSON.stringify(opts._payload);
   return opts;
 }
 
-function handleCartRequest(url, opts) {
-  opts = sanitizeCartRequestOptions(opts);
+async function handleCartRequest(url, opts) {
   const task = async () => {
-    const res = await originalFetch(url, opts);
+    const newOpts = await prepareCartRequest(url, opts);
+    if (!newOpts) {
+      return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+    const res = await originalFetch(url, newOpts);
+    if (res.status === 422) {
+      try {
+        await window.Shopify?.clear?.();
+      } catch (e) {}
+    }
     try {
       if (res.ok && window.ConceptSGMTheme && window.ConceptSGMTheme.Cart) {
         await window.ConceptSGMTheme.Cart.refreshCart();
@@ -445,6 +575,12 @@ function handleCartRequest(url, opts) {
   cartFetchQueue = cartFetchQueue.then(task, task);
   return cartFetchQueue;
 }
+
+window.getAvailableStockForVariant = getAvailableStockForVariant;
+window.ConceptSGMTheme = window.ConceptSGMTheme || {};
+window.ConceptSGMTheme.prepareCartRequest = prepareCartRequest;
+window.prepareCartRequest = prepareCartRequest;
+window.ConceptSGMTheme.getAvailableStockForVariant = getAvailableStockForVariant;
 
 window.fetch = function (url, opts) {
   const u = typeof url === 'string' ? url : url.url;
