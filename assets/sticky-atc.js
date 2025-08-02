@@ -1360,7 +1360,6 @@ if (!customElements.get('sticky-atc')) {
       if (requestedQty > availableToAdd) {
         formData.set('quantity', availableToAdd);
         if (qtyInput) {
-          qtyInput.value = availableToAdd;
           resetQty = true;
         }
       }
@@ -1416,7 +1415,26 @@ if (!customElements.get('sticky-atc')) {
               window.ConceptSGMEvents.emit('ON_ITEM_ADDED', body);
               window.Shopify.onItemAdded(body);
               if (resetQty && qtyInput) {
+                qtyInput.dataset.prevMin = qtyInput.min;
+                qtyInput.min = 0;
                 qtyInput.value = 0;
+                qtyInput.classList.add('text-red-600');
+                qtyInput.style.color = '#e3342f';
+                if (typeof updateQtyButtonsState === 'function') {
+                  updateQtyButtonsState(qtyInput);
+                }
+                const clearWarning = () => {
+                  qtyInput.classList.remove('text-red-600');
+                  qtyInput.style.color = '';
+                  if (qtyInput.dataset.prevMin) {
+                    qtyInput.min = qtyInput.dataset.prevMin;
+                    delete qtyInput.dataset.prevMin;
+                  }
+                  qtyInput.removeEventListener('input', clearWarning);
+                  qtyInput.removeEventListener('change', clearWarning);
+                };
+                qtyInput.addEventListener('input', clearWarning, { once: true });
+                qtyInput.addEventListener('change', clearWarning, { once: true });
               }
             }
           })
