@@ -7146,16 +7146,28 @@ class Cart {
     });
 
     _defineProperty(this, "applyCartQtyHelpers", () => {
-      const inputs = this.domNodes.cartDrawer?.querySelectorAll(this.cartItemSelectors.qtyInput) || [];
-      inputs.forEach(inp => {
-        const item = this.cart?.items?.find(it => String(it.key) === String(inp.dataset.id) || String(it.id) === String(inp.dataset.id));
-        if (item && Number(inp.value) !== Number(item.quantity)) {
-          console.log('correcting qty mismatch', { id: inp.dataset.id, dom: inp.value, cartQty: item.quantity });
-          inp.value = item.quantity;
-        }
-        if (typeof validateAndHighlightQty === 'function') validateAndHighlightQty(inp);
-        if (typeof updateQtyButtonsState === 'function') updateQtyButtonsState(inp);
-      });
+      const sync = () => {
+        const inputs = this.domNodes.cartDrawer?.querySelectorAll('[name="updates[]"]') || [];
+        inputs.forEach(inp => {
+          const item = this.cart?.items?.find(it => String(it.key) === String(inp.dataset.id) || String(it.id) === String(inp.dataset.id));
+          if (!item) return;
+          const before = inp.value;
+          const after = String(item.quantity);
+          if (before !== after) {
+            console.log('force sync qty', { id: inp.dataset.id, before, after });
+            inp.value = after;
+          } else {
+            console.log('qty already correct', { id: inp.dataset.id, value: after });
+          }
+
+          if (typeof validateAndHighlightQty === 'function') validateAndHighlightQty(inp);
+          if (typeof updateQtyButtonsState === 'function') updateQtyButtonsState(inp);
+        });
+      };
+
+      sync();
+      setTimeout(sync, 100);
+      setTimeout(sync, 500);
     });
 
     _defineProperty(this, "updateCartCount", cart => {
