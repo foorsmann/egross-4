@@ -241,56 +241,63 @@ var BUTTON_CLASS = 'double-qty-btn';
     return btn.parentNode.querySelector('input[type="number"]');
   }
 
-  function initDoubleQtyButtons() {
-    document.querySelectorAll('.' + BUTTON_CLASS).forEach(function(btn){
-        var input = findQtyInput(btn);
-        if (!input) return;
-        var min = parseInt(input.getAttribute('data-min-qty'), 10) || 1;
-        var template = btn.getAttribute('data-label-template') || btn.textContent;
-        var label = template.replace('{min_qty}', min);
-        btn.setAttribute('aria-label', label);
-        btn.textContent = label;
+function initDoubleQtyButtons() {
+  document.querySelectorAll('.' + BUTTON_CLASS).forEach(function (btn) {
+    var input = findQtyInput(btn);
+    if (!input) return;
 
-      if (btn.dataset.doubleQtyActive) return;
-      btn.dataset.doubleQtyActive = '1';
+    var min = parseInt(input.getAttribute('data-min-qty'), 10) || 1;
+    var template = btn.getAttribute('data-label-template') || btn.textContent;
+    var label = template.replace('{min_qty}', min);
+    btn.setAttribute('aria-label', label);
+    btn.textContent = label;
 
-        function updateBtnState() {
-          var max = input.max ? parseInt(input.max, 10) : 9999;
-          var val = parseInt(input.value, 10) || 1;
-          btn.disabled = val >= max;
-          validateAndHighlightQty(input, true);
-          updateQtyButtonsState(input);
-        }
+    if (btn.dataset.doubleQtyActive) return;
+    btn.dataset.doubleQtyActive = '1';
+
+    function updateBtnState() {
+      var max = input.max ? parseInt(input.max, 10) : 9999;
+      var val = parseInt(input.value, 10) || 1;
+      btn.disabled = val >= max;
+      validateAndHighlightQty(input, true);
+      updateQtyButtonsState(input);
+    }
+
+    updateBtnState();
+    input.addEventListener('input', updateBtnState);
+    input.addEventListener('change', updateBtnState);
+
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      adjustQuantity(input, 1);
       updateBtnState();
-      input.addEventListener('input', updateBtnState);
-      input.addEventListener('change', updateBtnState);
-
-        btn.addEventListener('click', function(e){
-          e.preventDefault();
-          e.stopImmediatePropagation();
-          adjustQuantity(input, 1);
-          updateBtnState();
-        });
-
-      btn.addEventListener('focus', function(){ btn.classList.add('focus'); });
-      btn.addEventListener('blur', function(){ btn.classList.remove('focus'); });
     });
-  }
 
-  function initAll(){
-    applyMinQty();
-    initDoubleQtyButtons();
-    attachQtyInputListeners();
-    attachQtyButtonListeners();
-    attachFormSubmitListener();
-  }
-  document.addEventListener('DOMContentLoaded', initAll);
-  window.addEventListener('shopify:section:load', initAll);
-  window.addEventListener('shopify:cart:updated', initAll);
-  window.addEventListener('shopify:product:updated', initAll);
+    btn.addEventListener('focus', function () {
+      btn.classList.add('focus');
+    });
+    btn.addEventListener('blur', function () {
+      btn.classList.remove('focus');
+    });
+  });
+}
 
-  window.doubleQtyInit = initDoubleQtyButtons;
-})();
+function initAll() {
+  applyMinQty();
+  initDoubleQtyButtons();
+  attachQtyInputListeners();
+  attachQtyButtonListeners();
+  attachFormSubmitListener();
+}
+
+document.addEventListener('DOMContentLoaded', initAll);
+window.addEventListener('shopify:section:load', initAll);
+window.addEventListener('shopify:cart:updated', initAll);
+window.addEventListener('shopify:product:updated', initAll);
+
+window.doubleQtyInit = initDoubleQtyButtons;
+})();```
 
 
 
