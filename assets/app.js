@@ -7082,9 +7082,10 @@ class Cart {
             this.cart = newCart;
             const cartHTML = await this.fetchCartSection().catch(() => null);
             if (cartHTML) {
-              const htmlInput = cartHTML.querySelector(`[name="updates[]"][data-id="${lineItem.id}"]`);
-              console.log('HTML after 422 change quantity', cartHTML.outerHTML);
-              console.log('qty from HTML', htmlInput?.value);
+              const itemHTML = cartHTML.querySelector(`.scd-item[data-id="${lineItem.id}"]`) || cartHTML.querySelector(`.scd-item[data-index="${lineItem.line}"]`);
+              const htmlInput = itemHTML?.querySelector(`[name="updates[]"]`);
+              console.log('item HTML after 422 change', itemHTML?.outerHTML);
+              console.log('qty from item HTML', htmlInput?.value);
               await this.renderNewCart(cartHTML);
               this.applyCartQtyHelpers?.();
               window.Shopify.onCartUpdate(newCart, false);
@@ -7147,6 +7148,11 @@ class Cart {
     _defineProperty(this, "applyCartQtyHelpers", () => {
       const inputs = this.domNodes.cartDrawer?.querySelectorAll(this.cartItemSelectors.qtyInput) || [];
       inputs.forEach(inp => {
+        const item = this.cart?.items?.find(it => String(it.key) === String(inp.dataset.id) || String(it.id) === String(inp.dataset.id));
+        if (item && Number(inp.value) !== Number(item.quantity)) {
+          console.log('correcting qty mismatch', { id: inp.dataset.id, dom: inp.value, cartQty: item.quantity });
+          inp.value = item.quantity;
+        }
         if (typeof validateAndHighlightQty === 'function') validateAndHighlightQty(inp);
         if (typeof updateQtyButtonsState === 'function') updateQtyButtonsState(inp);
       });
@@ -9380,17 +9386,18 @@ _defineProperty(this, "updateProductCardSoldOutBadge", variant => {
               message: res?.description || "Unable to add item to cart!"
             });
             const Cart = ConceptSGMTheme?.Cart;
-            if (Cart) {
+              if (Cart) {
               const newCart = await Cart.getCart().catch(() => null);
               console.log('cart after 422 add', newCart);
               if (newCart) {
                 Cart.cart = newCart;
                 const cartHTML = await Cart.fetchCartSection().catch(() => null);
                 if (cartHTML) {
-                  console.log('HTML after 422 add', cartHTML.outerHTML);
+                  const itemHTML = cartHTML.querySelector(`.scd-item[data-id="${variantId}"]`) || cartHTML.querySelector(`[data-id="${variantId}"]`);
+                  const htmlInput = itemHTML?.querySelector(`[name="updates[]"]`);
+                  console.log('item HTML after 422 add', itemHTML?.outerHTML);
+                  console.log('qty from item HTML', htmlInput?.value);
                   const item = newCart.items.find(it => String(it.id) === String(variantId));
-                  const htmlInput = item ? cartHTML.querySelector(`[name="updates[]"][data-id="${item.key}"]`) : null;
-                  console.log('qty from HTML', htmlInput?.value);
                   await Cart.renderNewCart(cartHTML);
                   Cart.applyCartQtyHelpers?.();
                   if (item) {
