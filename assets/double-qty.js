@@ -4,33 +4,38 @@
 
 (function(){
   // Funcție comună pentru validare și highlight roșu la atingerea stocului
-  function snapDown(val, step, min){
+  function snapNearest(val, step, min){
     if(!isFinite(val)) return min;
-    if(val < min) return min;
-    return Math.floor((val - min) / step) * step + min;
+    return Math.round((val - min) / step) * step + min;
   }
 
   function clampAndSnap(val, step, min, max, snap){
     val = Math.min(val, max);
     if(val < min) val = min;
     if(snap && val !== max){
-      val = snapDown(val, step, min);
+      val = snapNearest(val, step, min);
+      if(val > max) val = max;
+      if(val < min) val = min;
     }
     return val;
   }
 
-  function validateAndHighlightQty(input){
-    // allow user to temporarily clear the field without forcing it back to 1
-    if(input.value === ''){
-      input.classList.remove('text-red-600');
-      input.style.color = '';
-      return;
-    }
+  function validateAndHighlightQty(input, snap){
     var step = parseInt(input.getAttribute('data-min-qty'), 10) || parseInt(input.step,10) || 1;
     var max = input.max ? parseInt(input.max, 10) : Infinity;
+    var minQty = step;
+    if(input.value === ''){
+      if(snap){
+        input.value = minQty;
+      }else{
+        input.classList.remove('text-red-600');
+        input.style.color = '';
+        return;
+      }
+    }
     var val = parseInt(input.value, 10);
-    if(isNaN(val)) val = 1;
-    val = clampAndSnap(val, step, 1, max, false);
+    if(isNaN(val)) val = snap ? minQty : 1;
+    val = clampAndSnap(val, step, snap ? minQty : 1, max, snap);
     input.value = val;
     if(val >= max){
       input.classList.add('text-red-600');
@@ -66,11 +71,6 @@
   // păstrăm pentru compatibilitate cu codul existent
   var updateIncreaseBtnState = updateQtyButtonsState;
 
-  window.validateAndHighlightQty = validateAndHighlightQty;
-  // expunem helperii pentru a putea fi folosiți și în cart/drawer
-  window.updateQtyButtonsState = updateQtyButtonsState;
-  window.adjustQuantityHelper = adjustQuantity;
-
 var BUTTON_CLASS = 'double-qty-btn';
 
 
@@ -81,7 +81,7 @@ var BUTTON_CLASS = 'double-qty-btn';
         input.min = 1; // allow manual quantities below min_qty everywhere
         input.step = min;
         // nu forţăm valoarea dacă este sub min_qty; doar actualizăm starea butoanelor
-        validateAndHighlightQty(input);
+        validateAndHighlightQty(input, true);
         updateQtyButtonsState(input);
       }
     });
@@ -92,14 +92,14 @@ var BUTTON_CLASS = 'double-qty-btn';
     if(!productId) return;
     var value = changedInput.value;
     document.querySelectorAll('input[data-product-id="' + productId + '"][data-quantity-input]').forEach(function(input){
-      if(input === changedInput) return;
-      if(input.value !== value){
-        input.value = value;
-        validateAndHighlightQty(input);
-        updateQtyButtonsState(input);
-        input.dispatchEvent(new Event('input', { bubbles: true }));
-        input.dispatchEvent(new Event('change', { bubbles: true }));
-      }
+        if(input === changedInput) return;
+        if(input.value !== value){
+          input.value = value;
+          validateAndHighlightQty(input, true);
+          updateQtyButtonsState(input);
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+          input.dispatchEvent(new Event('change', { bubbles: true }));
+        }
     });
   }
 
@@ -110,19 +110,19 @@ var BUTTON_CLASS = 'double-qty-btn';
       input.dataset.qtyListener = '1';
       ['input','change','blur'].forEach(function(ev){
         input.addEventListener(ev, function(){
-          validateAndHighlightQty(input);
+          validateAndHighlightQty(input, ev !== 'input');
           updateQtyButtonsState(input);
           syncOtherQtyInputs(input);
         });
       });
       input.addEventListener('keypress', function(e){
         if(e.key === 'Enter'){
-          validateAndHighlightQty(input);
+          validateAndHighlightQty(input, true);
           updateQtyButtonsState(input);
           syncOtherQtyInputs(input);
         }
       });
-      validateAndHighlightQty(input);
+      validateAndHighlightQty(input, true);
       updateQtyButtonsState(input);
       syncOtherQtyInputs(input);
     });
@@ -143,18 +143,37 @@ var BUTTON_CLASS = 'double-qty-btn';
       var container = btn.closest('.quantity-input') || btn.parentNode;
       var input = container.querySelector('input[type="number"]');
       if(input){
-        var before = input.value;
-        setTimeout(function(){
-          var action = btn.getAttribute('data-quantity-selector') || btn.getAttribute('data-qty-change');
-          if(action === 'increase' || action === 'inc'){
-            adjustQuantity(input, 1, before);
-          }else if(action === 'decrease' || action === 'dec'){
-            adjustQuantity(input, -1, before);
-          }else{
-            validateAndHighlightQty(input);
-            updateQtyButtonsState(input);
-          }
-        }, 0);
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        var action = btn.getAttribute('data-quantity-selector') || btn.getAttribute('data-qty-change');
+        if(action === 'increase' || action === 'inc'){
+          adjustQuantity(input, 1);
+        }else if(action === 'decrease' || action === 'dec'){
+          adjustQuantity(input, -1);
+        }else{
+          validateAndHighlightQty(input, true);
+          updateQtyButtonsState(input);
+        }
+      }
+    }, true);
+  }
+
+  var formSubmitListenerAdded = false;
+  function attachFormSubmitListener(){
+    if(formSubmitListenerAdded) return;
+    formSubmitListenerAdded = true;
+    document.addEventListener('submit', function(e){
+      var form = e.target;
+      var input = form.querySelector('input[data-quantity-input]');
+      if(!input) return;
+      if(input.closest('.scd-item') || input.closest('[data-cart-item]')) return;
+      validateAndHighlightQty(input, true);
+      var step = parseInt(input.getAttribute('data-min-qty'), 10) || parseInt(input.step,10) || 1;
+      var max = input.max ? parseInt(input.max, 10) : Infinity;
+      var minQty = step;
+      var val = parseInt(input.value,10);
+      if(!val || val < minQty || val > max || ((val - minQty) % step !== 0)){
+        e.preventDefault();
       }
     }, true);
   }
@@ -167,11 +186,11 @@ var BUTTON_CLASS = 'double-qty-btn';
     if(isNaN(val)) val = 1;
 
     // Dacă suntem la maxim, doar validează și colorează
-    if(delta > 0 && isFinite(max) && val >= max){
-      validateAndHighlightQty(input);
-      updateQtyButtonsState(input);
-      return;
-    }
+      if(delta > 0 && isFinite(max) && val >= max){
+        validateAndHighlightQty(input, true);
+        updateQtyButtonsState(input);
+        return;
+      }
 
     if(delta < 0){
       // Snap la multiplu inferior plecând de la minQty
@@ -191,19 +210,19 @@ var BUTTON_CLASS = 'double-qty-btn';
       if(val > max) val = max;
     }
 
-    var newVal = clampAndSnap(val, step, 1, max);
-    input.value = newVal;
-    if(newVal >= max){
-      input.classList.add('text-red-600');
-      input.style.color = '#e3342f';
-    }else{
-      input.classList.remove('text-red-600');
-      input.style.color = '';
+      var newVal = clampAndSnap(val, step, 1, max);
+      input.value = newVal;
+      if(newVal >= max){
+        input.classList.add('text-red-600');
+        input.style.color = '#e3342f';
+      }else{
+        input.classList.remove('text-red-600');
+        input.style.color = '';
+      }
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      updateQtyButtonsState(input);
     }
-    input.dispatchEvent(new Event('input', { bubbles: true }));
-    input.dispatchEvent(new Event('change', { bubbles: true }));
-    updateQtyButtonsState(input);
-  }
 
   function findQtyInput(btn) {
     let wrapper = btn.previousElementSibling;
@@ -219,33 +238,34 @@ var BUTTON_CLASS = 'double-qty-btn';
 
   function initDoubleQtyButtons() {
     document.querySelectorAll('.' + BUTTON_CLASS).forEach(function(btn){
-      var input = findQtyInput(btn);
-      if (!input) return;
-      var min = parseInt(input.getAttribute('data-min-qty'), 10) || 1;
-      var template = btn.getAttribute('data-label-template') || btn.textContent;
-      var label = template.replace('{min_qty}', min);
-      btn.setAttribute('aria-label', label);
-      btn.textContent = label;
+        var input = findQtyInput(btn);
+        if (!input) return;
+        var min = parseInt(input.getAttribute('data-min-qty'), 10) || 1;
+        var template = btn.getAttribute('data-label-template') || btn.textContent;
+        var label = template.replace('{min_qty}', min);
+        btn.setAttribute('aria-label', label);
+        btn.textContent = label;
 
       if (btn.dataset.doubleQtyActive) return;
       btn.dataset.doubleQtyActive = '1';
 
-      function updateBtnState() {
-        var max = input.max ? parseInt(input.max, 10) : 9999;
-        var val = parseInt(input.value, 10) || 1;
-        btn.disabled = val >= max;
-        validateAndHighlightQty(input);
-        updateQtyButtonsState(input);
-      }
+        function updateBtnState() {
+          var max = input.max ? parseInt(input.max, 10) : 9999;
+          var val = parseInt(input.value, 10) || 1;
+          btn.disabled = val >= max;
+          validateAndHighlightQty(input, true);
+          updateQtyButtonsState(input);
+        }
       updateBtnState();
       input.addEventListener('input', updateBtnState);
       input.addEventListener('change', updateBtnState);
 
-      btn.addEventListener('click', function(e){
-        e.preventDefault();
-        adjustQuantity(input, 1);
-        updateBtnState();
-      });
+        btn.addEventListener('click', function(e){
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          adjustQuantity(input, 1);
+          updateBtnState();
+        });
 
       btn.addEventListener('focus', function(){ btn.classList.add('focus'); });
       btn.addEventListener('blur', function(){ btn.classList.remove('focus'); });
@@ -257,7 +277,12 @@ var BUTTON_CLASS = 'double-qty-btn';
     initDoubleQtyButtons();
     attachQtyInputListeners();
     attachQtyButtonListeners();
+    attachFormSubmitListener();
   }
+  window.validateAndHighlightQty = validateAndHighlightQty;
+  window.updateQtyButtonsState = updateQtyButtonsState;
+  window.adjustQuantityHelper = adjustQuantity;
+
   document.addEventListener('DOMContentLoaded', initAll);
   window.addEventListener('shopify:section:load', initAll);
   window.addEventListener('shopify:cart:updated', initAll);
@@ -265,11 +290,3 @@ var BUTTON_CLASS = 'double-qty-btn';
 
   window.doubleQtyInit = initDoubleQtyButtons;
 })();
-
-
-
-
-
-
-
-
