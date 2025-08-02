@@ -460,10 +460,22 @@ function _appendNoCache(url) {
     return url;
   }
 }
-function _needsNoCache(url) {
+function _getUrlAsString(resource) {
+  if (!resource) return '';
+  if (typeof resource === 'string') return resource;
+  if (typeof resource.url === 'string') return resource.url;
+  try {
+    return String(resource);
+  } catch (e) {
+    return '';
+  }
+}
+function _needsNoCache(resource) {
+  const url = _getUrlAsString(resource);
   return CART_ENDPOINTS.some(path => url.includes(path));
 }
-function _isCartMutation(url) {
+function _isCartMutation(resource) {
+  const url = _getUrlAsString(resource);
   return url.includes('/cart/add.js') || url.includes('/cart/change.js');
 }
 function _clearClientCartData() {
@@ -509,10 +521,11 @@ async function _handleCart422() {
   window.location.replace(url.toString());
 }
 window.fetch = async function (resource, options) {
-  let url = typeof resource === 'string' ? resource : resource.url;
+  let url = _getUrlAsString(resource);
   let opts = options || {};
   if (resource instanceof Request) {
-    opts = Object.assign({
+    opts = {
+      ...opts,
       method: resource.method,
       headers: resource.headers,
       body: resource.body,
@@ -524,13 +537,13 @@ window.fetch = async function (resource, options) {
       integrity: resource.integrity,
       keepalive: resource.keepalive,
       signal: resource.signal
-    }, opts);
+    };
   }
-  if (_needsNoCache(url)) {
+  if (_needsNoCache(resource)) {
     url = _appendNoCache(url);
   }
   const res = await _originalFetch(url, opts);
-  if (_isCartMutation(url) && res.status === 422) {
+  if (_isCartMutation(resource) && res.status === 422) {
     await _handleCart422();
   }
   return res;
