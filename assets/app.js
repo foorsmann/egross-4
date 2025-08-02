@@ -382,6 +382,77 @@ const fetchJSON = function (url) {
     return response.json();
   });
 };
+const originalFetch = window.fetch.bind(window);
+let cartFetchQueue = Promise.resolve();
+
+function clampQty(value, id) {
+  if (typeof clampQtyInput === 'function') {
+    return clampQtyInput(value, id);
+  }
+  let v = parseInt(value, 10);
+  if (isNaN(v) || v < 1) v = 1;
+  return v;
+}
+
+function sanitizeCartRequestOptions(opts) {
+  opts = opts || {};
+  if (opts.body instanceof FormData) {
+    Array.from(opts.body.keys()).forEach(key => {
+      if (key === 'quantity') {
+        opts.body.set(key, clampQty(opts.body.get(key)));
+      } else {
+        const match = key.match(/^items\[(\d+)\]\[quantity\]$/);
+        if (match) {
+          opts.body.set(key, clampQty(opts.body.get(key)));
+        }
+      }
+    });
+  } else if (typeof opts.body === 'string') {
+    try {
+      const data = JSON.parse(opts.body);
+      if (Array.isArray(data.items)) {
+        data.items = data.items.map(item => ({
+          ...item,
+          quantity: clampQty(item.quantity, item.id || item.variant_id)
+        }));
+      } else if (data && typeof data.quantity !== 'undefined') {
+        data.quantity = clampQty(data.quantity, data.id || data.variant_id);
+      }
+      opts.body = JSON.stringify(data);
+    } catch (e) {}
+  }
+
+  return opts;
+}
+
+function handleCartRequest(url, opts) {
+  opts = sanitizeCartRequestOptions(opts);
+  const task = async () => {
+    const res = await originalFetch(url, opts);
+    try {
+      if (res.ok && window.ConceptSGMTheme && window.ConceptSGMTheme.Cart) {
+        await window.ConceptSGMTheme.Cart.refreshCart();
+        const html = await window.ConceptSGMTheme.Cart.fetchCartSection();
+        await window.ConceptSGMTheme.Cart.renderNewCart(html);
+        window.Shopify?.onCartUpdate?.(window.ConceptSGMTheme.Cart.cart, false);
+      }
+    } catch (e) {
+      console.warn('Cart sync failed', e);
+    }
+    return res;
+  };
+
+  cartFetchQueue = cartFetchQueue.then(task, task);
+  return cartFetchQueue;
+}
+
+window.fetch = function (url, opts) {
+  const u = typeof url === 'string' ? url : url.url;
+  if (/\/cart\/(add|change)\.js/.test(u)) {
+    return handleCartRequest(u, opts);
+  }
+  return originalFetch(url, opts);
+};
 const cache = new Map();
 const fetchCache = function (url) {
   let config = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : getRequestDefaultConfigs();
