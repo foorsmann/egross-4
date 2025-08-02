@@ -20,6 +20,11 @@
   outline: none;
 }
 
+/* Efect de mărire la hover */
+.double-qty-btn:hover:not(:disabled) {
+  transform: scale(1.03);
+}
+
 /* Efect fizic de apăsare la click, doar dacă nu e dezactivat */
 .double-qty-btn:active:not(:disabled) {
   transform: scale(0.98);
