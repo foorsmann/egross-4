@@ -17,3 +17,21 @@
 .prod__form-error:not(:empty) {
   display: block;
 }
+
+.quantity-input.qty-over-limit {
+  position: relative;
+}
+.quantity-input.qty-over-limit::after {
+  content: attr(data-over-value);
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: red;
+  text-decoration: line-through;
+  pointer-events: none;
+}
+.quantity-input.qty-over-limit .quantity-input__element {
+  color: transparent;
+}

@@ -30,6 +30,19 @@ if (!customElements.get("product-form")) {
         this.form.closest(".product-form").classList[method]("adding");
       });
 
+      _defineProperty(this, "showExceededQty", (input, attempted) => {
+        const wrapper = input?.closest('.quantity-input');
+        if (!wrapper) return;
+        wrapper.dataset.overValue = attempted;
+        wrapper.classList.add('qty-over-limit');
+        const reset = () => {
+          wrapper.classList.remove('qty-over-limit');
+          wrapper.removeAttribute('data-over-value');
+          input.removeEventListener('input', reset);
+        };
+        input.addEventListener('input', reset);
+      });
+
       this.selectors = {
         form: "form",
         inputId: "[name=id]",
@@ -108,7 +121,10 @@ if (!customElements.get("product-form")) {
       if (requestedQty > availableToAdd) {
         formData.set('quantity', availableToAdd);
         const qtyInput = this.form.querySelector('[name="quantity"]');
-        if (qtyInput) qtyInput.value = availableToAdd;
+        if (qtyInput) {
+          qtyInput.value = availableToAdd;
+          this.showExceededQty(qtyInput, requestedQty);
+        }
       }
 
       const config = {
