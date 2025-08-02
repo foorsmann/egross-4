@@ -535,6 +535,9 @@ Shopify.onCartUpdate = async function (cart) {
 
       if (open_drawer) {
         await Cart.renderNewCart();
+        // Ensure drawer inputs reflect server-corrected quantities before showing
+        console.log('== All helpers reapplied on new inputs (onCartUpdate) ==');
+        Cart.syncCartInputs?.();
         Cart.openCartDrawer();
       }
 
@@ -576,6 +579,9 @@ Shopify.onItemAdded = async function (line_item) {
 
       if (open_drawer) {
         await Cart.renderNewCart();
+        // Ensure drawer inputs reflect server-corrected quantities before showing
+        console.log('== All helpers reapplied on new inputs (onItemAdded) ==');
+        Cart.syncCartInputs?.();
         Cart.openCartDrawer();
         ConceptSGMTheme.Notification.show({
           target: Cart.domNodes?.cartDrawerItems,
@@ -7031,6 +7037,7 @@ class Cart {
         sold_out_items_message
       } = cart_ConceptSGMStrings;
 
+      console.log('== Start changeItemQty ==', lineItem);
       try {
         const {
           id: key,
@@ -7038,17 +7045,33 @@ class Cart {
         } = lineItem;
         this.loading.start();
         const newCart = await this.changeCart(lineItem);
+        console.log('== AJAX response received ==', newCart);
         this.cart = newCart;
+        const newItem = newCart.items.find(_ref2 => {
+          let { key: _key } = _ref2;
+          return _key === key;
+        });
+        // sincronizăm instant cantitatea din input cu valoarea returnată de server
+        const lineItemNodeInstant = this.getLineItemNode(lineItem);
+        if (lineItemNodeInstant) {
+          const instantInput = lineItemNodeInstant.querySelector(this.cartItemSelectors.qtyInput);
+          if (instantInput && newItem) {
+            console.log('[changeItemQty] set input value before DOM replace', {id: key, value: newItem.quantity});
+            instantInput.value = newItem.quantity;
+            if (typeof validateAndHighlightQty === 'function') {
+              validateAndHighlightQty(instantInput);
+            }
+            if (typeof updateQtyButtonsState === 'function') {
+              updateQtyButtonsState(instantInput);
+            }
+          }
+        }
         const cartHTML = await this.fetchCartSection();
+        console.log('== Start update after AJAX ==');
         this.loading.finish(() => {
+          console.log('== Inputs replaced in DOM ==');
           this.renderNewCart(cartHTML);
           window.Shopify.onCartUpdate(newCart, false);
-          const newItem = newCart.items.find(_ref2 => {
-            let {
-              key: _key
-            } = _ref2;
-            return _key === key;
-          });
 
           if (quantity > newItem?.quantity) {
             const {
@@ -7068,6 +7091,17 @@ class Cart {
                 type: 'warning',
                 message: not_enough_item_message.replace('__inventory_quantity__', newItem.quantity)
               });
+              console.log('[changeItemQty] not enough stock warning', {id: key, serverQty: newItem.quantity});
+              // Re-evaluăm culoarea și starea butoanelor după notificare
+              const input = lineItemNode?.querySelector(this.cartItemSelectors.qtyInput);
+              if (input) {
+                if (typeof validateAndHighlightQty === 'function') {
+                  validateAndHighlightQty(input);
+                }
+                if (typeof updateQtyButtonsState === 'function') {
+                  updateQtyButtonsState(input);
+                }
+              }
             }
           }
         });
@@ -7075,18 +7109,53 @@ class Cart {
         this.loading.finish();
 
         if (err?.status === 422) {
+          console.log('== ERROR 422, refreshing drawer ==');
+          const message = ConceptSGMStrings?.out_of_stock || 'Stoc insuficient';
           const lineItemNode = this.getLineItemNode(lineItem);
 
           if (lineItemNode) {
             cart_ConceptSGMTheme.Notification.show({
               target: lineItemNode,
               type: 'warning',
-              message: sold_out_items_message
+              message
+            });
+          } else {
+            cart_ConceptSGMTheme.Notification.show({
+              target: this.domNodes?.cartDrawerItems,
+              type: 'warning',
+              message
             });
           }
-        }
 
-        console.warn("Failed to change item quantity: ", err);
+          try {
+            const newCart = await this.getCart();
+            this.cart = newCart;
+            const newItem = newCart.items.find(i => i.key === lineItem.id);
+            const errNode = this.getLineItemNode(lineItem);
+            if (errNode && newItem) {
+              const input = errNode.querySelector(this.cartItemSelectors.qtyInput);
+              if (input) {
+                console.log('[422] set input to server qty', { id: lineItem.id, qty: newItem.quantity });
+                input.value = newItem.quantity;
+                if (typeof validateAndHighlightQty === 'function') {
+                  validateAndHighlightQty(input);
+                }
+                if (typeof updateQtyButtonsState === 'function') {
+                  updateQtyButtonsState(input);
+                }
+              }
+            }
+            const cartHTML = await this.fetchCartSection();
+            this.renderNewCart(cartHTML);
+            window.Shopify.onCartUpdate(newCart, false);
+            this.openCartDrawer();
+            console.log('== Drawer rebuilt with fresh cart.js ==');
+          } catch (refreshErr) {
+            console.warn('Failed to refresh cart after 422', refreshErr);
+          }
+        } else {
+          console.warn("Failed to change item quantity: ", err);
+        }
       }
     });
 
@@ -7103,18 +7172,78 @@ class Cart {
       return lineItemNode;
     });
 
+    // Synchronize quantity inputs with the latest cart data and reapply helpers
+    _defineProperty(this, "syncCartInputs", () => {
+      if (!this.cart) return;
+      console.log('== syncCartInputs ==');
+      this.cart.items.forEach(item => {
+        const node = this.domNodes.cartDrawerItems?.querySelector(`.scd-item[data-id="${item.key}"]`);
+        const input = node?.querySelector(this.cartItemSelectors.qtyInput);
+        if (input) {
+          console.log('[syncCartInputs] setting value', {id: item.key, quantity: item.quantity});
+          input.value = item.quantity;
+          if (typeof validateAndHighlightQty === 'function') {
+            validateAndHighlightQty(input);
+          }
+          if (typeof updateQtyButtonsState === 'function') {
+            updateQtyButtonsState(input);
+          }
+        }
+      });
+      // After inputs are synchronized, run helpers on all fresh inputs to ensure
+      // highlight and button states are correct after DOM replacement
+      document.querySelectorAll('.scd-item__qty_input').forEach(input => {
+        console.log('[DrawerCart] found input after update', input.id, input.value, input);
+        if (typeof validateAndHighlightQty === 'function') {
+          validateAndHighlightQty(input);
+        }
+        if (typeof updateQtyButtonsState === 'function') {
+          updateQtyButtonsState(input);
+        }
+      });
+    });
+
     _defineProperty(this, "renderNewCart", async cartHTML => {
+      console.log('== renderNewCart called ==');
       if (!cartHTML) {
         cartHTML = await this.fetchCartSection();
       }
 
       const newCartBody = cartHTML.querySelector('.scd__body');
       const newCartSummary = cartHTML.querySelector('.scd__summary');
+
+      // Apply button state and highlight while new DOM is still detached
+      if (typeof updateQtyButtonsState === 'function' || typeof validateAndHighlightQty === 'function') {
+        newCartBody
+          ?.querySelectorAll(this.cartItemSelectors.qtyInput)
+          .forEach(input => {
+            if (typeof validateAndHighlightQty === 'function') {
+              validateAndHighlightQty(input);
+            }
+            if (typeof updateQtyButtonsState === 'function') {
+              updateQtyButtonsState(input);
+            }
+          });
+      }
+
       const currentCartBody = this.domNodes.cartDrawer.querySelector('.scd__body');
       const currentCartSummary = this.domNodes.cartDrawer.querySelector('.scd__summary');
       currentCartBody.replaceWith(newCartBody);
       currentCartSummary.replaceWith(newCartSummary);
       this.domNodes = queryDomNodes(this.selectors);
+      // After replacing DOM, update inputs so values and highlight stay in sync
+      this.syncCartInputs?.();
+      console.log('== All helpers reapplied on new inputs ==');
+      // Log and validate all quantity inputs after the drawer/cart DOM is fully refreshed
+      document.querySelectorAll('.scd-item__qty_input').forEach(input => {
+        console.log('[DrawerCart] found input after update', input.id, input.value, input);
+        if (typeof validateAndHighlightQty === 'function') {
+          validateAndHighlightQty(input);
+        }
+        if (typeof updateQtyButtonsState === 'function') {
+          updateQtyButtonsState(input);
+        }
+      });
     });
 
     _defineProperty(this, "refreshCart", async () => {
@@ -7383,6 +7512,7 @@ addEventDelegate({
   selector: this.cartItemSelectors.btn,
   handler: (e, btn) => {
     e.preventDefault();
+    console.log('[btn click] qty button', {id: btn.dataset.id, change: btn.dataset.qtyChange});
     const { qtyChange, id } = btn.dataset;
     const item = this.getCartItemByKey(id);
 
@@ -7390,10 +7520,14 @@ addEventDelegate({
       const input = btn.parentElement.querySelector(this.cartItemSelectors.qtyInput);
       if (!input) return;
 
+      console.log('[btn click] before adjust', {value: input.value});
+
       const before = input.value;
       if (typeof adjustQuantityHelper === 'function') {
         adjustQuantityHelper(input, qtyChange === 'dec' ? -1 : 1, before);
       }
+
+      console.log('[btn click] after adjust', {value: input.value});
 
       const quantity = parseInt(input.value, 10) || 1;
       this.changeItemQty({
@@ -7413,6 +7547,7 @@ addEventDelegate({
   selector: this.cartItemSelectors.qtyInput,
   handler: (e, input) => {
     e.preventDefault();
+    console.log('[change] qty input', {id: input.dataset.id, value: input.value});
     if (typeof validateAndHighlightQty === 'function') {
       validateAndHighlightQty(input);
     }
@@ -7420,11 +7555,27 @@ addEventDelegate({
       updateQtyButtonsState(input);
     }
     const { id } = input.dataset;
+    console.log('[change] sending changeItemQty', {id, value: input.value});
     const quantity = parseInt(input.value, 10) || 1;
     this.changeItemQty({
       id,
       quantity
     });
+  }
+});
+
+addEventDelegate({
+  context: this.domNodes.cartDrawer,
+  event: 'input',
+  selector: this.cartItemSelectors.qtyInput,
+  handler: (e, input) => {
+    console.log('[input] qty input', {id: input.dataset.id, value: input.value});
+    if (typeof validateAndHighlightQty === 'function') {
+      validateAndHighlightQty(input);
+    }
+    if (typeof updateQtyButtonsState === 'function') {
+      updateQtyButtonsState(input);
+    }
   }
 });
 
@@ -8838,7 +8989,7 @@ _defineProperty(this, "updateQtyBtnStates", () => {
   const minusBtn = Array.isArray(quantityBtns)
     ? quantityBtns.find(b => b.dataset.quantitySelector === 'decrease' || b.name === 'minus')
     : null;
-  
+
   const step = Number(quantityInput.getAttribute('data-min-qty')) || Number(quantityInput.step) || 1;
   const minQty = step;
   let max = this.productData?.selected_variant?.inventory_quantity ?? Infinity;
@@ -8846,8 +8997,14 @@ _defineProperty(this, "updateQtyBtnStates", () => {
   if (!Number.isNaN(attrMax)) max = attrMax;
   let val = parseInt(quantityInput.value, 10);
   if (Number.isNaN(val)) val = 1;
+  console.log('[updateQtyBtnStates(product)]', {val, max, minQty});
   if (plusBtn) plusBtn.disabled = isFinite(max) && val >= max;
-  if (minusBtn) minusBtn.disabled = val <= minQty && ((val - minQty) % step === 0);
+  if (minusBtn) {
+    // minus button disabled when current value is at or below minQty,
+    // regardless of manual input or button usage
+    minusBtn.disabled = val <= minQty;
+    if (minusBtn.disabled) console.log('[updateQtyBtnStates(product)] minus disabled');
+  }
 });
 
 
@@ -9337,14 +9494,67 @@ _defineProperty(this, "updateProductCardSoldOutBadge", variant => {
         }
 
         const sourceEvent = formData.get('source_event') || 'product-form';
-        this.cartAddFromForm(formData).then(r => r.json()).then(res => {
+        this.cartAddFromForm(formData).then(r => r.json()).then(async res => {
           if (res?.status === 422) {
+            const qtyInput = this.domNodes?.quantityInput;
+            const attrMax = parseInt(qtyInput?.max, 10);
+            const maxQty = !Number.isNaN(attrMax) ? attrMax : (this.productData?.selected_variant?.inventory_quantity || 1);
+
+            // set product page input to max quantity and reapply helpers
+            if (qtyInput) {
+              qtyInput.value = maxQty;
+              if (typeof validateAndHighlightQty === 'function') {
+                validateAndHighlightQty(qtyInput);
+              }
+              if (typeof updateQtyButtonsState === 'function') {
+                updateQtyButtonsState(qtyInput);
+              }
+            }
+
+            const warningMsg = `Stoc insuficient! S-a setat automat cantitatea maxim\u0103 disponibil\u0103: ${maxQty} buc\u0103\u021bi.`;
+
             modules_product_ConceptSGMTheme.Notification.show({
               target: this?.domNodes?.error,
               method: 'appendChild',
               type: 'warning',
-              message: res?.description || "Unable to add item to cart!"
+              message: warningMsg
             });
+
+            const { Cart } = modules_product_ConceptSGMTheme;
+            if (Cart) {
+              console.log('== ERROR 422, refreshing drawer ==');
+              await Cart.refreshCart();
+
+              // update drawer quantity immediately before re-render
+              const variantId = this.productData?.selected_variant?.id;
+              if (variantId) {
+                const item = Cart.cart.items.find(i => i.variant_id === variantId);
+                const node = item
+                  ? Cart.domNodes.cartDrawerItems?.querySelector(`.scd-item[data-id="${item.key}"]`)
+                  : null;
+                const input = node?.querySelector(Cart.cartItemSelectors.qtyInput);
+                if (input && item) {
+                  input.value = item.quantity;
+                  if (typeof validateAndHighlightQty === 'function') {
+                    validateAndHighlightQty(input);
+                  }
+                  if (typeof updateQtyButtonsState === 'function') {
+                    updateQtyButtonsState(input);
+                  }
+                }
+              }
+
+              const drawerHTML = await Cart.fetchCartSection();
+              Cart.renderNewCart(drawerHTML);
+              Cart.syncCartInputs?.();
+              Cart.openCartDrawer();
+              cart_ConceptSGMTheme.Notification.show({
+                target: Cart.domNodes?.cartDrawerItems,
+                type: 'warning',
+                message: warningMsg
+              });
+              console.log('== Drawer synced after 422 ==');
+            }
           } else {
             res.source = sourceEvent;
             window.Shopify.onItemAdded(res);
