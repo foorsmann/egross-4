@@ -175,39 +175,9 @@ if (!customElements.get("product-form")) {
             window.ConceptSGMEvents.emit(`ON_ITEM_ADDED`, body);
             window.Shopify.onItemAdded(body);
             if (resetQty && qtyInput) {
-              qtyInput.dataset.prevMin = qtyInput.min;
-              qtyInput.dataset.prevMinQtyAttr = qtyInput.getAttribute('data-min-qty');
-              qtyInput.removeAttribute('data-min-qty');
-              qtyInput.min = 0;
-              qtyInput.value = 0;
-              qtyInput.classList.add('text-red-600');
-              qtyInput.style.color = '#e3342f';
-              if (typeof updateQtyButtonsState === 'function') {
-                updateQtyButtonsState(qtyInput);
+              if (typeof applyCappedQtyState === 'function') {
+                applyCappedQtyState(qtyInput);
               }
-              const reinforceZero = () => {
-                qtyInput.value = 0;
-                if (typeof updateQtyButtonsState === 'function') {
-                  updateQtyButtonsState(qtyInput);
-                }
-              };
-              setTimeout(reinforceZero, 0);
-              const clearWarning = () => {
-                qtyInput.classList.remove('text-red-600');
-                qtyInput.style.color = '';
-                if (qtyInput.dataset.prevMin) {
-                  qtyInput.min = qtyInput.dataset.prevMin;
-                  delete qtyInput.dataset.prevMin;
-                }
-                if (qtyInput.dataset.prevMinQtyAttr !== undefined) {
-                  qtyInput.setAttribute('data-min-qty', qtyInput.dataset.prevMinQtyAttr);
-                  delete qtyInput.dataset.prevMinQtyAttr;
-                }
-                qtyInput.removeEventListener('input', clearWarning);
-                qtyInput.removeEventListener('change', clearWarning);
-              };
-              qtyInput.addEventListener('input', clearWarning, { once: true });
-              qtyInput.addEventListener('change', clearWarning, { once: true });
             }
           })
           .catch(() => {})
