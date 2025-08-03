@@ -1413,6 +1413,10 @@ if (!customElements.get('sticky-atc')) {
               this.stickyError?.show(msg);
             } else {
               window.ConceptSGMEvents.emit('ON_ITEM_ADDED', body);
+              if (resetQty) {
+                body.requestedQty = requestedQty;
+                body.addedQty = availableToAdd;
+              }
               window.Shopify.onItemAdded(body);
               if (resetQty && qtyInput) {
                 if (typeof applyCappedQtyState === 'function') {

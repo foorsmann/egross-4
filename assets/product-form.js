@@ -173,6 +173,10 @@ if (!customElements.get("product-form")) {
             }
 
             window.ConceptSGMEvents.emit(`ON_ITEM_ADDED`, body);
+            if (resetQty) {
+              body.requestedQty = requestedQty;
+              body.addedQty = availableToAdd;
+            }
             window.Shopify.onItemAdded(body);
             if (resetQty && qtyInput) {
               if (typeof applyCappedQtyState === 'function') {

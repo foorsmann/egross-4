@@ -72,6 +72,7 @@
     },
     "notifications": {
       "item_added": "Product added to cart successfully",
+      "only_available_added": "Only {{ quantity }} was added to the cart due to availability",
       "required_field": "Please fill all the required fields(*) before Add To Cart!"
     },
     "foxkit": {

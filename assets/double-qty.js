@@ -271,7 +271,14 @@ var BUTTON_CLASS = 'double-qty-btn';
     document.querySelectorAll('.' + BUTTON_CLASS).forEach(function(btn){
       var input = findQtyInput(btn);
       if (!input) return;
-      var min = parseInt(input.getAttribute('data-min-qty'), 10) || 1;
+      var storedMin = parseInt(btn.getAttribute('data-original-min-qty'), 10);
+      var min;
+      if(isNaN(storedMin)){
+        min = parseInt(input.getAttribute('data-min-qty'), 10) || 1;
+        btn.setAttribute('data-original-min-qty', min);
+      }else{
+        min = storedMin;
+      }
       var template = btn.getAttribute('data-label-template') || btn.textContent;
       var label = template.replace('{min_qty}', min);
       btn.setAttribute('aria-label', label);

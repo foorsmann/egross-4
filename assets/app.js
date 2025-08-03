@@ -577,11 +577,14 @@ Shopify.onItemAdded = async function (line_item) {
       if (open_drawer) {
         await Cart.renderNewCart();
         Cart.openCartDrawer();
+        const message = line_item?.requestedQty && line_item?.addedQty && line_item.requestedQty > line_item.addedQty
+          ? ConceptSGMStrings.onlyAvailableAdded.replace('__max_qty__', line_item.addedQty)
+          : ConceptSGMStrings.itemAdded;
         ConceptSGMTheme.Notification.show({
           target: Cart.domNodes?.cartDrawerItems,
           method: 'prepend',
           type: 'success',
-          message: ConceptSGMStrings.itemAdded,
+          message,
           delay: 400
         });
       }
