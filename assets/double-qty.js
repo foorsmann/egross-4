@@ -26,11 +26,12 @@
       input.style.color = '';
       return;
     }
+    var min = input.min ? parseInt(input.min,10) : 1;
     var step = parseInt(input.getAttribute('data-min-qty'), 10) || parseInt(input.step,10) || 1;
     var max = input.max ? parseInt(input.max, 10) : Infinity;
     var val = parseInt(input.value, 10);
-    if(isNaN(val)) val = 1;
-    val = clampAndSnap(val, step, 1, max, false);
+    if(isNaN(val)) val = min;
+    val = clampAndSnap(val, step, min, max, false);
     input.value = val;
     if(val >= max){
       input.classList.add('text-red-600');
@@ -102,6 +103,46 @@ var BUTTON_CLASS = 'double-qty-btn';
       }
     });
   }
+
+  function applyCappedQtyState(sourceInput){
+    var productId = sourceInput.dataset.productId;
+    if(!productId) return;
+    var inputs = document.querySelectorAll('input[data-product-id="' + productId + '"][data-quantity-input]');
+    inputs.forEach(function(input){
+      input.dataset.prevMin = input.min;
+      input.min = 0;
+      input.value = 0;
+      input.classList.add('text-red-600');
+      input.style.color = '#e3342f';
+      if(typeof updateQtyButtonsState === 'function'){
+        updateQtyButtonsState(input);
+      }
+      setTimeout(function(){
+        input.value = 0;
+        if(typeof updateQtyButtonsState === 'function'){
+          updateQtyButtonsState(input);
+        }
+      },0);
+      var clearWarning = function(){
+        input.classList.remove('text-red-600');
+        input.style.color = '';
+        if(input.dataset.prevMin){
+          input.min = input.dataset.prevMin;
+          delete input.dataset.prevMin;
+        }
+        input.removeEventListener('input', clearWarning);
+        input.removeEventListener('change', clearWarning);
+        if(typeof window.syncOtherQtyInputs === 'function'){
+          window.syncOtherQtyInputs(input);
+        }
+      };
+      input.addEventListener('input', clearWarning, { once: true });
+      input.addEventListener('change', clearWarning, { once: true });
+    });
+  }
+
+  window.syncOtherQtyInputs = syncOtherQtyInputs;
+  window.applyCappedQtyState = applyCappedQtyState;
 
   function attachQtyInputListeners(){
     var selectors = '.quantity-input__element, .scd-item__qty_input, input[data-quantity-input]';
