@@ -116,8 +116,10 @@
       }
       btn.addEventListener('click',function(){
         adjustQuantity(input,'increase');
+        update();
       });
       input.addEventListener('input',update);
+      input.addEventListener('change',update);
       update();
     });
   }
@@ -151,6 +153,8 @@
       super();
       this.form = this.querySelector('form');
       this.submitButton = this.querySelector('.collection-add-to-cart');
+      this.idInput = this.form ? this.form.querySelector('[name="id"]') : null;
+      if(this.idInput){ this.idInput.disabled = false; }
       this.addEventListener('submit', this.onSubmit.bind(this));
     }
     toggleSpinner(show){

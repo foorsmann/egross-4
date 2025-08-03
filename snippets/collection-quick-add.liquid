@@ -12,7 +12,6 @@
   assign form_id = 'collection-form-' | append: section.id | append: '-' | append: product.id
   assign min_qty = product.metafields.custom.minimum_quantity | default: 1 | plus: 0
   assign max_qty = product.selected_or_first_available_variant.inventory_quantity
-  assign show_double_btn = settings.show_double_qty_btn | default: false
   assign label_template = settings.double_qty_btn_label | default: 'Adauga inca {min_qty}'
   if label_template contains '{min_qty}'
     assign double_label = label_template | replace: '{min_qty}', min_qty
@@ -29,7 +28,7 @@
           class: 'collection-product-card-form',
           novalidate: 'novalidate'
         -%}
-          <input type="hidden" name="id" value="{{ variant_id }}" data-collection-selected-variant="{{ selected_variant_id }}" disabled>
+          <input type="hidden" name="id" value="{{ variant_id }}" data-collection-selected-variant="{{ selected_variant_id }}">
           <div class="collection-form__actions" data-collection-cart-actions>
             <div class="collection-qty-wrapper form__input-wrapper form__input-wrapper--select mr-5 w-32" data-collection-quantity-input-wrapper>
               <div class="collection-qty-group flex gap-2 w-full">
@@ -42,10 +41,8 @@
                     <svg class="w-[12px] h-[12px]" fill="currentColor" stroke="currentColor" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><path d="M376 232H216V72c0-4.42-3.58-8-8-8h-32c-4.42 0-8 3.58-8 8v160H8c-4.42 0-8 3.58-8 8v32c0 4.42 3.58 8 8 8h160v160c0 4.42 3.58 8 8 8h32c4.42 0 8-3.58 8-8V280h160c4.42 0 8-3.58 8-8v-32c0-4.42-3.58-8-8-8z"/></svg>
                   </button>
                 </collection-quantity-input>
-                {%- if show_double_btn -%}
-                  {%- if min_qty > 1 or request.design_mode -%}
-                    <button type="button" class="collection-double-qty-btn sf__btn sf__btn-secondary flex-1 max-w-[160px]" aria-label="{{ double_label }}" data-collection-double-qty data-collection-label-template="{{ label_template }}" data-collection-original-min-qty="{{ min_qty }}" data-collection-double-qty-active="1">{{ double_label }}</button>
-                  {%- endif -%}
+                {%- if min_qty > 1 or request.design_mode -%}
+                  <button type="button" class="collection-double-qty-btn sf__btn sf__btn-secondary flex-1 max-w-[160px]" aria-label="{{ double_label }}" data-collection-double-qty data-collection-label-template="{{ label_template }}" data-collection-original-min-qty="{{ min_qty }}" data-collection-double-qty-active="1">{{ double_label }}</button>
                 {%- endif -%}
               </div>
             </div>
