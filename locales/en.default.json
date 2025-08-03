@@ -72,7 +72,8 @@
     },
     "notifications": {
       "item_added": "Product added to cart successfully",
-      "required_field": "Please fill all the required fields(*) before Add To Cart!"
+      "required_field": "Please fill all the required fields(*) before Add To Cart!",
+      "max_limit": "You've reached the maximum available quantity for this product."
     },
     "foxkit": {
       "add": "Add"
