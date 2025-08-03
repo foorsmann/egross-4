@@ -1354,7 +1354,7 @@ if (!customElements.get('sticky-atc')) {
 
       const availableToAdd = Math.max(maxQty - cartQty, 0);
       if (availableToAdd <= 0) {
-        this.stickyError?.show(window.ConceptSGMStrings.cartLimit || 'Cantitatea maxima pentru aceasta varianta este deja in cos.');
+        this.stickyError?.show(window.ConceptSGMStrings.cartLimit || 'Ai atins limita maxima disponibila pentru acest produs.');
         return;
       }
       if (requestedQty > availableToAdd) {
