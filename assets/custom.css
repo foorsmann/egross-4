@@ -17,3 +17,9 @@
 .prod__form-error:not(:empty) {
   display: block;
 }
+
+/* Keep capped quantity inputs highlighted */
+.quantity-input .capped {
+  color: #e3342f !important;
+}
+
