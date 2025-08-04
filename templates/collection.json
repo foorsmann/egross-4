@@ -105,7 +105,7 @@
       ],
       "settings": {
         "container": "container",
-        "grid_layout": "list",
+        "grid_layout": "grid",
         "grid_columns": "3",
         "show_columns_switcher": false,
         "pagination_limit": 50,
@@ -117,7 +117,7 @@
         "sidebar_title": "Filtre",
         "limit_height_widget": false,
         "limit_height": 300,
-        "change_product_variant_on_fitlering": true,
+        "change_product_variant_on_fitlering": false,
         "show_product_count": true,
         "collapsed_groups": "Brand, Vendor, Size, dimensiuni",
         "color_swatches": "color,colour,couleur,farbe,culoare"
