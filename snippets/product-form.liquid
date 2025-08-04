@@ -30,9 +30,10 @@
     assign show_double_qty_btn = section.settings.show_double_qty_btn | default: false
   endif
   assign min_qty = product.metafields.custom.minimum_quantity | default: 1 | plus: 0
+  assign inventory_qty = product.selected_or_first_available_variant.inventory_quantity | default: 0 | plus: 0
   assign has_double_qty_btn = false
   if show_double_qty_btn
-    if min_qty > 1 or request.design_mode
+    if min_qty > 0 and inventory_qty > 0 or request.design_mode
       assign has_double_qty_btn = true
     endif
   endif
