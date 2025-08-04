@@ -40,6 +40,7 @@ input.collection-qty-element:focus {
   cursor: pointer;
   transition: background 0.2s, box-shadow 0.2s, transform 0.12s;
   outline: none;
+  user-select: none;
 }
 
 .collection-double-qty-btn:hover:not(:disabled) {
@@ -66,3 +67,44 @@ input.collection-qty-element:focus {
 .collection-product-form.adding .collection-atc-spinner { display: flex; }
 .collection-product-form.adding .collection-atc-text { visibility: hidden; }
 .collection-product-form.adding .collection-add-to-cart { pointer-events: none; }
+
+/* prevent text highlighting on quick-add buttons */
+.sf__pcard-quick-add-col .collection-add-to-cart,
+.sf__pcard-quick-add-col .collection-double-qty-btn,
+.sf__pcard-quick-add-col .collection-qty-button,
+.sf__pcard-quick-add-col .sf__btn {
+  user-select: none;
+}
+
+/* layout tweaks for quantity controls inside quick-add cards */
+.collection-qty-group {
+  flex-wrap: wrap;
+}
+
+.collection-qty-group .collection-quantity-input {
+  flex: 0 0 auto;
+  width: auto;
+}
+
+.collection-qty-group .collection-double-qty-btn {
+  flex: 1 1 auto;
+  width: auto;
+  max-width: none;
+}
+
+.collection-qty-group > .collection-quantity-input:only-child,
+.collection-qty-group > .collection-double-qty-btn:only-child {
+  flex: 1 1 100%;
+  width: 100%;
+}
+
+.collection-qty-group.is-wrapped .collection-quantity-input {
+  flex: 1 1 100%;
+  width: 100%;
+}
+
+.collection-qty-group.is-wrapped .collection-double-qty-btn {
+  flex: 1 1 100%;
+  width: 100%;
+  height: 46px;
+}

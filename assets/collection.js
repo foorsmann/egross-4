@@ -1630,9 +1630,11 @@ class Collection {
 
       this.activeCol = null;
       this.currentPage = 1;
-      this.initialCol = Number(section.dataset.initialColumn);
-      this.cachedCol = Number(window.localStorage.getItem(this.STORAGE_KEY));
-      this.showColSwitchers = section.dataset.showColSwitchers === 'true'; // Filters data
+      this.showColSwitchers = section.dataset.showColSwitchers === 'true';
+      if (this.showColSwitchers) {
+        this.initialCol = Number(section.dataset.initialColumn);
+        this.cachedCol = Number(window.localStorage.getItem(this.STORAGE_KEY));
+      }
 
       this.enableFilters = section.dataset.enableFilters === 'true';
       this.enableSorting = section.dataset.enableSorting === 'true';
@@ -1642,18 +1644,20 @@ class Collection {
 
     _defineProperty(this, "initGridView", () => {
       initCustomSelect(this.domNodes.section);
-      this.toggleView(this.isDesignMode ? this.initialCol : this.cachedCol);
-      this.updateViewByScreen();
-      (0,events/* addEventDelegate */.X)({
-        selector: this.selectors.cols[0],
-        context: this.domNodes.toolbar,
-        handler: (e, colNode) => this.toggleView(Number(colNode.dataset.column))
-      });
-      this.initLoadMore();
+      if (this.showColSwitchers) {
+        this.toggleView(this.isDesignMode ? this.initialCol : this.cachedCol);
+        this.updateViewByScreen();
+        (0,events/* addEventDelegate */.X)({
+          selector: this.selectors.cols[0],
+          context: this.domNodes.toolbar,
+          handler: (e, colNode) => this.toggleView(Number(colNode.dataset.column))
+        });
 
-      if (!this.sideEffectEventsAdded) {
-        window.addEventListener('resize', debounce(this.updateViewByScreen, 500));
+        if (!this.sideEffectEventsAdded) {
+          window.addEventListener('resize', debounce(this.updateViewByScreen, 500));
+        }
       }
+      this.initLoadMore();
     });
 
     _defineProperty(this, "initFilters", () => {
