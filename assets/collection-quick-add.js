@@ -275,12 +275,28 @@
       btn.addEventListener('blur', function(){ btn.classList.remove('focus'); });
     });
   }
+  function updateQtyGroupLayout(){
+    document.querySelectorAll('.collection-qty-group').forEach(function(group){
+      var input = group.querySelector('.collection-quantity-input');
+      var btn = group.querySelector('.collection-double-qty-btn');
+      if(!input || !btn) return;
+      group.classList.toggle('is-wrapped', btn.offsetTop > input.offsetTop);
+    });
+  }
+  var qtyLayoutListenerBound = false;
+  function watchQtyGroupLayout(){
+    updateQtyGroupLayout();
+    if(qtyLayoutListenerBound) return;
+    qtyLayoutListenerBound = true;
+    window.addEventListener('resize', updateQtyGroupLayout);
+  }
   function initAll(){
     applyMinQty();
     initDoubleQtyButtons();
     attachQtyInputListeners();
     attachQtyButtonListeners();
     attachNoHighlightListeners();
+    watchQtyGroupLayout();
   }
   document.addEventListener('DOMContentLoaded', initAll);
   window.addEventListener('shopify:section:load', initAll);
