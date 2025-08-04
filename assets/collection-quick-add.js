@@ -200,6 +200,19 @@
         updateQtyButtonsState(input);
       }
       clearTextSelection();
+      btn.blur();
+    }, true);
+  }
+
+  var noHighlightListenerBound = false;
+  function attachNoHighlightListeners(){
+    if(noHighlightListenerBound) return;
+    noHighlightListenerBound = true;
+    document.addEventListener('click', function(e){
+      var btn = e.target.closest('.collection-add-to-cart, .collection-double-qty-btn, .collection-qty-button, .sf__btn');
+      if(!btn || !btn.closest('.sf__pcard-quick-add-col')) return;
+      clearTextSelection();
+      btn.blur();
     }, true);
   }
   function findQtyInput(btn){
@@ -267,6 +280,7 @@
     initDoubleQtyButtons();
     attachQtyInputListeners();
     attachQtyButtonListeners();
+    attachNoHighlightListeners();
   }
   document.addEventListener('DOMContentLoaded', initAll);
   window.addEventListener('shopify:section:load', initAll);

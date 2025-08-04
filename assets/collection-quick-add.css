@@ -68,6 +68,14 @@ input.collection-qty-element:focus {
 .collection-product-form.adding .collection-atc-text { visibility: hidden; }
 .collection-product-form.adding .collection-add-to-cart { pointer-events: none; }
 
+/* prevent text highlighting on quick-add buttons */
+.sf__pcard-quick-add-col .collection-add-to-cart,
+.sf__pcard-quick-add-col .collection-double-qty-btn,
+.sf__pcard-quick-add-col .collection-qty-button,
+.sf__pcard-quick-add-col .sf__btn {
+  user-select: none;
+}
+
 /* layout tweaks for quantity controls inside quick-add cards */
 .collection-qty-group {
   flex-wrap: wrap;
