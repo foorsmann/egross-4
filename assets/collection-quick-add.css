@@ -24,10 +24,10 @@ input.collection-qty-element:focus {
   padding: 0.5rem 0.75rem;
 }
 
-.collection-product-form .collection-atc-spinner { display: none; }
-.collection-product-form.adding .collection-atc-spinner { display: flex; }
-.collection-product-form.adding .collection-atc-text { visibility: hidden; }
-.collection-product-form.adding .collection-add-to-cart { pointer-events: none; }
+.collection-product-form .atc-spinner { display: none; }
+.collection-product-form.adding .atc-spinner { display: flex; }
+.collection-product-form.adding .atc-text { visibility: hidden; }
+.collection-product-form.adding .add-to-cart { pointer-events: none; }
 
 /* prevent text highlighting on quick-add buttons */
 .sf__pcard-quick-add-col .collection-add-to-cart,
