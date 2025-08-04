@@ -117,7 +117,7 @@
         "sidebar_title": "Filtre",
         "limit_height_widget": false,
         "limit_height": 300,
-        "change_product_variant_on_fitlering": true,
+        "change_product_variant_on_fitlering": false,
         "show_product_count": true,
         "collapsed_groups": "Brand, Vendor, Size, dimensiuni",
         "color_swatches": "color,colour,couleur,farbe,culoare"

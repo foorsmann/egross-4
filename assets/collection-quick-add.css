@@ -66,3 +66,30 @@ input.collection-qty-element:focus {
 .collection-product-form.adding .collection-atc-spinner { display: flex; }
 .collection-product-form.adding .collection-atc-text { visibility: hidden; }
 .collection-product-form.adding .collection-add-to-cart { pointer-events: none; }
+
+/* layout tweaks for quantity controls inside quick-add cards */
+.collection-qty-group {
+  flex-wrap: wrap;
+}
+
+.collection-qty-group .collection-quantity-input,
+.collection-qty-group .collection-double-qty-btn {
+  flex: 0 0 auto;
+  width: 100%;
+}
+
+@supports (width: fit-content) {
+  .collection-qty-group .collection-quantity-input,
+  .collection-qty-group .collection-double-qty-btn {
+    width: fit-content;
+  }
+}
+
+.collection-qty-group .collection-double-qty-btn {
+  max-width: none;
+}
+
+.collection-qty-group > .collection-quantity-input:only-child,
+.collection-qty-group > .collection-double-qty-btn:only-child {
+  width: 100%;
+}
