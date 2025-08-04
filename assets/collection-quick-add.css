@@ -6,7 +6,21 @@
 }
 
 .collection-qty-element {
+  box-sizing: border-box;
+  color: inherit;
+  font-family: inherit;
+  font-size: 100%;
+  margin: 0;
+  flex-shrink: 1;
+  flex-grow: 1;
+  appearance: none;
+  text-align: center;
   border: 0;
+  --tw-bg-opacity: 1;
+  background-color: rgb(255 255 255/var(--tw-bg-opacity));
+  border-radius: 0.25rem;
+  line-height: 1.5rem;
+  padding: 0.5rem 0.75rem;
 }
 
 .collection-double-qty-btn {
