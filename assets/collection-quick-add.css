@@ -24,7 +24,6 @@ input.collection-qty-element:focus {
   padding: 0.5rem 0.75rem;
 }
 
-
 .collection-product-form .collection-atc-spinner { display: none; }
 .collection-product-form.adding .collection-atc-spinner { display: flex; }
 .collection-product-form.adding .collection-atc-text { visibility: hidden; }
@@ -70,3 +69,4 @@ input.collection-qty-element:focus {
   width: 100%;
   height: 46px;
 }
+
