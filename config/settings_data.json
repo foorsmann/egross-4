@@ -135,7 +135,7 @@
             "type": "custom_html",
             "disabled": true,
             "settings": {
-              "heading": "Home",
+              "heading": "Acasa",
               "container": "container",
               "html": ""
             }
