@@ -496,7 +496,7 @@
     
         {%- if sold_out == false and settings.show_cart_button and card_style == '4' -%}
           <div class="sf__pcard-action-atc flex justify-center">
-            {% render 'product-card-quick-add-btn', product: product, quick_add_text: quick_add_text, section: section %}
+            {% render 'collection-quick-add', product: product, quick_add_text: quick_add_text, section: section %}
           </div>
         {%- endif -%}
     
