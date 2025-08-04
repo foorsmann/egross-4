@@ -16,11 +16,15 @@
     }
     return val;
   }
+  function clearTextSelection(){
+    var sel = window.getSelection ? window.getSelection() : null;
+    if(sel && sel.removeAllRanges){ sel.removeAllRanges(); }
+  }
   function validateAndHighlight(input){
-    if(input.value === ''){
-      input.classList.remove('text-red-600');
-      input.style.color = '';
-      return;
+      if(input.value === ''){
+        input.classList.remove('text-red-600');
+        input.style.color = '';
+        return;
     }
     var min = input.min ? parseInt(input.min,10) : 1;
     var step = parseInt(input.getAttribute('data-collection-min-qty'),10) || parseInt(input.step,10) || 1;
@@ -195,6 +199,20 @@
         validateAndHighlight(input);
         updateQtyButtonsState(input);
       }
+      clearTextSelection();
+      btn.blur();
+    }, true);
+  }
+
+  var noHighlightListenerBound = false;
+  function attachNoHighlightListeners(){
+    if(noHighlightListenerBound) return;
+    noHighlightListenerBound = true;
+    document.addEventListener('click', function(e){
+      var btn = e.target.closest('.collection-add-to-cart, .collection-double-qty-btn, .collection-qty-button, .sf__btn');
+      if(!btn || !btn.closest('.sf__pcard-quick-add-col')) return;
+      clearTextSelection();
+      btn.blur();
     }, true);
   }
   function findQtyInput(btn){
@@ -250,6 +268,8 @@
         input.dispatchEvent(new Event('input',{bubbles:true}));
         input.dispatchEvent(new Event('change',{bubbles:true}));
         updateBtnState();
+        clearTextSelection();
+        btn.blur();
       });
       btn.addEventListener('focus', function(){ btn.classList.add('focus'); });
       btn.addEventListener('blur', function(){ btn.classList.remove('focus'); });
@@ -260,6 +280,7 @@
     initDoubleQtyButtons();
     attachQtyInputListeners();
     attachQtyButtonListeners();
+    attachNoHighlightListeners();
   }
   document.addEventListener('DOMContentLoaded', initAll);
   window.addEventListener('shopify:section:load', initAll);
