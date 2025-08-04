@@ -5,6 +5,10 @@
   width: 100%;
 }
 
+.collection-qty-element {
+  border: 0;
+}
+
 .collection-double-qty-btn {
   display: inline-flex;
   align-items: center;
