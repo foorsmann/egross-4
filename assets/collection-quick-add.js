@@ -175,7 +175,10 @@
     input.dispatchEvent(new Event('change',{bubbles:true}));
     updateQtyButtonsState(input);
   }
+  var qtyButtonListenerBound = false;
   function attachQtyButtonListeners(){
+    if(qtyButtonListenerBound) return;
+    qtyButtonListenerBound = true;
     document.addEventListener('click', function(e){
       var btn = e.target.closest('[data-collection-quantity-selector]');
       if(!btn) return;
