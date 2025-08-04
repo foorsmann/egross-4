@@ -98,6 +98,7 @@ input.collection-qty-element:focus {
   width: 100%;
 }
 
+/* Asta rezolvă cazul când grupul s-a rupt pe 2 rânduri: */
 .collection-qty-group.is-wrapped .collection-quantity-input {
   flex: 1 1 100%;
   width: 100%;
@@ -108,3 +109,4 @@ input.collection-qty-element:focus {
   width: 100%;
   height: 46px;
 }
+
