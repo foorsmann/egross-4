@@ -199,7 +199,7 @@
           "secondary_menu": "",
           "mobile_menu": "",
           "uppercase_parent_level": false,
-          "search": "show_icon",
+          "search": "show_full",
           "show_account_icon": false,
           "show_cart_icon": true,
           "show_wishlist_icon": false,
