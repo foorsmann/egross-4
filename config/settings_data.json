@@ -184,7 +184,7 @@
         ],
         "custom_css": [],
         "settings": {
-          "header_design": "logo-left-menu-center",
+          "header_design": "logo-left__2l",
           "container": "container",
           "header_sticky": true,
           "transparent_on_top": false,
