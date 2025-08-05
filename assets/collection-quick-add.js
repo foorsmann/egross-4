@@ -290,7 +290,14 @@
     });
   }
   var qtyLayoutListenerBound = false;
+  var qtyGroupObserver;
   function watchQtyGroupLayout(){
+    if(typeof ResizeObserver !== 'undefined'){
+      if(!qtyGroupObserver){ qtyGroupObserver = new ResizeObserver(updateQtyGroupLayout); }
+      document.querySelectorAll('.collection-qty-group').forEach(function(group){
+        qtyGroupObserver.observe(group);
+      });
+    }
     updateQtyGroupLayout();
     requestAnimationFrame(updateQtyGroupLayout);
     if(document.fonts && document.fonts.ready){
@@ -305,6 +312,7 @@
     window.addEventListener('load', function(){
       updateQtyGroupLayout();
       requestAnimationFrame(updateQtyGroupLayout);
+      setTimeout(updateQtyGroupLayout,0);
     });
   }
   function initAll(){
@@ -315,7 +323,11 @@
     attachNoHighlightListeners();
     watchQtyGroupLayout();
   }
-  document.addEventListener('DOMContentLoaded', initAll);
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', initAll);
+  }else{
+    initAll();
+  }
   window.addEventListener('shopify:section:load', initAll);
   window.addEventListener('shopify:cart:updated', initAll);
   window.addEventListener('shopify:product:updated', initAll);
