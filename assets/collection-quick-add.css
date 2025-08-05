@@ -55,7 +55,7 @@ input.collection-qty-element:focus {
 }
 
 .collection-qty-group .collection-quantity-input {
-  flex: 0 0 auto;
+  flex: 1 1 auto;
   width: auto;
 }
 
