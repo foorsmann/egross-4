@@ -577,11 +577,17 @@ Shopify.onItemAdded = async function (line_item) {
       if (open_drawer) {
         await Cart.renderNewCart();
         Cart.openCartDrawer();
+        const lineItemNode = Cart.getLineItemNode(line_item);
+        const qtyInput = lineItemNode?.querySelector('input[name="updates[]"]');
+        const max = parseInt(qtyInput?.getAttribute('max'), 10);
+        const quantity = parseInt(qtyInput?.value, 10);
+        const reachedLimit = !isNaN(max) && !isNaN(quantity) && quantity >= max;
+        const cartForm = Cart.domNodes?.cartDrawerItems?.closest('form');
         ConceptSGMTheme.Notification.show({
-          target: Cart.domNodes?.cartDrawerItems,
+          target: cartForm,
           method: 'prepend',
-          type: 'success',
-          message: ConceptSGMStrings.itemAdded,
+          type: reachedLimit ? 'warning' : 'success',
+          message: reachedLimit ? ConceptSGMStrings.cartLimit : ConceptSGMStrings.itemAdded,
           delay: 400
         });
       }
