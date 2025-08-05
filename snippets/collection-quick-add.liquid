@@ -20,7 +20,6 @@
   endif
 -%}
 {%- if settings.show_cart_button -%}
-  <collection-pcard-error class="sticky-atc-error" aria-live="polite"><span class="sticky-atc-error__msg"></span></collection-pcard-error>
   <div class="sf__pcard-quick-add-col w-full">
     {%- if product.has_only_default_variant -%}
       <collection-product-form class="collection-product-form w-full" data-collection-product-id="{{ product.id }}">

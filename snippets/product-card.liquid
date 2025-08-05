@@ -465,8 +465,9 @@
     
           {%- if sold_out == false and card_style == '1' -%}
               {% render 'product-card-quick-add-btn', product: product, quick_add_text: quick_add_text, section: section %}
-            {% endif %}   
+            {% endif %}
         </div>
+        <collection-pcard-error class="sticky-atc-error" aria-live="polite"><span class="sticky-atc-error__msg"></span></collection-pcard-error>
       </div>
       <div class="sf__pcard-content text-{{ settings.pcard_alignment }}">
         <div class="mt-3 lg:mt-5">
