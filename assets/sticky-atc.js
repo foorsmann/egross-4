@@ -27,43 +27,8 @@ const ConceptSGMSettings = window.ConceptSGMSettings || {};
 const ConceptSGMStrings = window.ConceptSGMStrings || {};
 const ConceptSGMLibs = window.ConceptSGMLibs || {};
 
-class StickyATCError {
-  constructor(node) {
-    this.node = node;
-    this.timer = null;
-    if (this.node) {
-      this.msgEl = this.node.querySelector('.sticky-atc-error__msg');
-      if (!this.msgEl) {
-        this.msgEl = document.createElement('span');
-        this.msgEl.className = 'sticky-atc-error__msg';
-        this.node.append(this.msgEl);
-      }
-    }
-  }
-  removeDiacritics(text) {
-    return text && text.normalize('NFD').replace(/\p{Diacritic}/gu, '');
-  }
-  show(msg) {
-    if (!this.node) return;
-    clearTimeout(this.timer);
-    if (!msg) msg = window.ConceptSGMStrings.cartError || 'Error';
-    msg = this.removeDiacritics(msg);
-    this.msgEl.textContent = msg;
-    this.node.classList.remove('show');
-    void this.node.offsetWidth;
-    this.node.classList.add('show');
-    this.timer = setTimeout(() => this.hide(), 4000);
-  }
-  hide() {
-    if (!this.node) return;
-    this.node.classList.remove('show');
-    clearTimeout(this.timer);
-    this.timer = setTimeout(() => {
-      this.msgEl.textContent = '';
-    }, 300);
-  }
-}
-window.StickyATCError = StickyATCError;
+// Error handling logic moved to error-messages.js
+window.StickyATCError = window.CartError;
 
 /***/ }),
 

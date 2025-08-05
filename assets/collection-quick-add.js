@@ -294,33 +294,48 @@
     qtyLayoutListenerBound = true;
     window.addEventListener('resize', updateQtyGroupLayout);
   }
-  function initAll(){
-    applyMinQty();
-    initDoubleQtyButtons();
-    attachQtyInputListeners();
-    attachQtyButtonListeners();
-    attachNoHighlightListeners();
-    watchQtyGroupLayout();
-  }
-  document.addEventListener('DOMContentLoaded', initAll);
-  window.addEventListener('shopify:section:load', initAll);
-  window.addEventListener('shopify:cart:updated', initAll);
-  window.addEventListener('shopify:product:updated', initAll);
-  class CollectionProductForm extends HTMLElement{
-    constructor(){
-      super();
-      this.form = this.querySelector('form');
-      this.submitButton = this.querySelector('.collection-add-to-cart');
-      this.idInput = this.form ? this.form.querySelector('[name="id"]') : null;
-      if(this.idInput){ this.idInput.disabled = false; }
-      this.addEventListener('submit', this.onSubmit.bind(this));
+    function initAll(){
+      applyMinQty();
+      initDoubleQtyButtons();
+      attachQtyInputListeners();
+      attachQtyButtonListeners();
+      attachNoHighlightListeners();
+      watchQtyGroupLayout();
     }
+    document.addEventListener('DOMContentLoaded', initAll);
+    window.addEventListener('shopify:section:load', initAll);
+    window.addEventListener('shopify:cart:updated', initAll);
+    window.addEventListener('shopify:product:updated', initAll);
+    if(!customElements.get('collection-pcard-error')){
+      customElements.define('collection-pcard-error', class extends HTMLElement{
+        constructor(){
+          super();
+          this.error = null;
+        }
+        connectedCallback(){
+          this.error = new (window.CartError || window.StickyATCError)(this);
+        }
+        show(msg){ this.error?.show(msg); }
+        hide(){ this.error?.hide(); }
+      });
+    }
+    class CollectionProductForm extends HTMLElement{
+      constructor(){
+        super();
+        this.form = this.querySelector('form');
+        this.submitButton = this.querySelector('.collection-add-to-cart');
+        this.idInput = this.form ? this.form.querySelector('[name="id"]') : null;
+        if(this.idInput){ this.idInput.disabled = false; }
+        this.errorWrapper = this.closest('.sf__pcard')?.querySelector('collection-pcard-error');
+        this.addEventListener('submit', this.onSubmit.bind(this));
+      }
     toggleSpinner(show){
       this.classList[show ? 'add' : 'remove']('adding');
     }
     async onSubmit(e){
-      e.preventDefault();
-      this.toggleSpinner(true);
+        e.preventDefault();
+        this.toggleSpinner(true);
+        this.errorWrapper?.hide();
       const formData = new FormData(this.form);
       const variantId = parseInt(formData.get('id'),10);
       const qtyInput = this.form.querySelector('input[name="quantity"]');
@@ -333,11 +348,11 @@
       }catch(err){ cartQty = 0; }
       const available = Math.max(maxQty - cartQty,0);
       let resetQty = false;
-      if(available <= 0){
-        window.ConceptSGMTheme?.Notification?.show({type:'warning', message: window.ConceptSGMStrings?.cartLimit});
-        this.toggleSpinner(false);
-        return;
-      }
+        if(available <= 0){
+          this.errorWrapper?.show(window.ConceptSGMStrings.cartLimit || 'Cantitatea maxima pentru aceasta varianta este deja in cos.');
+          this.toggleSpinner(false);
+          return;
+        }
       if(requestedQty > available){
         formData.set('quantity', available);
         resetQty = true;
@@ -348,17 +363,37 @@
         body: formData
       };
       const settings = window.ConceptSGMSettings || {};
-      fetch(`${settings.routes?.cart_add_url || '/cart/add'}`, config)
-        .then(r=>r.json())
-        .then(data=>{
-          window.ConceptSGMEvents?.emit('COLLECTION_ITEM_ADDED', data);
-          window.Shopify?.onItemAdded?.(data);
-          if(resetQty && qtyInput){ applyCappedQtyState(qtyInput); }
-        })
-        .catch(()=>{})
-        .finally(()=>{ this.toggleSpinner(false); });
+        fetch(`${settings.routes?.cart_add_url || '/cart/add'}`, config)
+          .then(async r => {
+            let body;
+            try {
+              const ct = r.headers.get('content-type');
+              if (ct && ct.includes('application/json')) {
+                body = await r.json();
+              } else {
+                body = { message: await r.text() };
+              }
+            } catch(err) {
+              body = {};
+            }
+            return { statusCode: r.status, body };
+          })
+          .then(({ statusCode, body }) => {
+            if (statusCode >= 400 || body.status) {
+              let msg = body.description || body.message || body.errors || window.ConceptSGMStrings.cartError;
+              this.errorWrapper?.show(msg);
+              return;
+            }
+            window.ConceptSGMEvents?.emit('COLLECTION_ITEM_ADDED', body);
+            window.Shopify?.onItemAdded?.(body);
+            if(resetQty && qtyInput){ applyCappedQtyState(qtyInput); }
+          })
+          .catch(() => {
+            this.errorWrapper?.show(window.ConceptSGMStrings.cartError);
+          })
+          .finally(()=>{ this.toggleSpinner(false); });
+      }
     }
-  }
   if(!customElements.get('collection-product-form')){
     customElements.define('collection-product-form', CollectionProductForm);
   }
