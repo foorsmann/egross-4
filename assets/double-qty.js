@@ -104,79 +104,97 @@ var BUTTON_CLASS = 'double-qty-btn';
     });
   }
 
-  function applyCappedQtyState(sourceInput){
-    var productId = sourceInput.dataset.productId;
-    if(!productId) return;
-    var inputs = document.querySelectorAll('input[data-product-id="' + productId + '"][data-quantity-input]');
-    inputs.forEach(function(input){
-      input.dataset.prevMin = input.min;
-      var prevAttr = input.getAttribute('data-min-qty');
-      if(prevAttr !== null) {
-        input.dataset.prevMinQtyAttr = prevAttr;
-      }
-      input.removeAttribute('data-min-qty');
-      input.min = 0;
+function applyCappedQtyState(sourceInput){
+  var productId = sourceInput.dataset.productId;
+  if (!productId) return;
+
+  var inputs = document.querySelectorAll(
+    'input[data-product-id="' + productId + '"][data-quantity-input]'
+  );
+
+  inputs.forEach(function(input){
+    input.dataset.prevMin = input.min;
+
+    var prevAttr = input.getAttribute('data-min-qty');
+    if (prevAttr !== null) {
+      input.dataset.prevMinQtyAttr = prevAttr;
+    }
+    input.removeAttribute('data-min-qty');
+
+    input.min = 0;
+    input.value = 0;
+    input.classList.add('text-red-600', 'capped');
+    input.style.color = '#e3342f';
+
+    if (typeof updateQtyButtonsState === 'function') {
+      updateQtyButtonsState(input);
+    }
+
+    setTimeout(function(){
       input.value = 0;
-      input.classList.add('text-red-600');
-      input.style.color = '#e3342f';
-      if(typeof updateQtyButtonsState === 'function'){
+      if (typeof updateQtyButtonsState === 'function') {
         updateQtyButtonsState(input);
       }
-      setTimeout(function(){
-        input.value = 0;
-        if(typeof updateQtyButtonsState === 'function'){
-          updateQtyButtonsState(input);
-        }
-      },0);
-      var clearWarning = function(){
-        input.classList.remove('text-red-600');
-        input.style.color = '';
-        if(input.dataset.prevMin){
-          input.min = input.dataset.prevMin;
-          delete input.dataset.prevMin;
-        }
-        if(input.dataset.prevMinQtyAttr !== undefined){
-          input.setAttribute('data-min-qty', input.dataset.prevMinQtyAttr);
-          delete input.dataset.prevMinQtyAttr;
-        }
-        input.removeEventListener('input', clearWarning);
-        input.removeEventListener('change', clearWarning);
-        if(typeof window.syncOtherQtyInputs === 'function'){
-          window.syncOtherQtyInputs(input);
-        }
-      };
-      input.addEventListener('input', clearWarning, { once: true });
-      input.addEventListener('change', clearWarning, { once: true });
-    });
-  }
+    }, 0);
 
-  window.syncOtherQtyInputs = syncOtherQtyInputs;
-  window.applyCappedQtyState = applyCappedQtyState;
+    var clearWarning = function(){
+      input.classList.remove('text-red-600', 'capped');
+      input.style.color = '';
 
-  function attachQtyInputListeners(){
-    var selectors = '.quantity-input__element, .scd-item__qty_input, input[data-quantity-input]';
-    document.querySelectorAll(selectors).forEach(function(input){
-      if(input.dataset.qtyListener) return;
-      input.dataset.qtyListener = '1';
-      ['input','change','blur'].forEach(function(ev){
-        input.addEventListener(ev, function(){
-          validateAndHighlightQty(input);
-          updateQtyButtonsState(input);
-          syncOtherQtyInputs(input);
-        });
+      if (input.dataset.prevMin) {
+        input.min = input.dataset.prevMin;
+        delete input.dataset.prevMin;
+      }
+
+      if (input.dataset.prevMinQtyAttr !== undefined) {
+        input.setAttribute('data-min-qty', input.dataset.prevMinQtyAttr);
+        delete input.dataset.prevMinQtyAttr;
+      }
+
+      input.removeEventListener('input', clearWarning);
+      input.removeEventListener('change', clearWarning);
+
+      if (typeof window.syncOtherQtyInputs === 'function') {
+        window.syncOtherQtyInputs(input);
+      }
+    };
+
+    input.addEventListener('input', clearWarning, { once: true });
+    input.addEventListener('change', clearWarning, { once: true });
+  });
+}
+
+window.syncOtherQtyInputs = syncOtherQtyInputs;
+window.applyCappedQtyState = applyCappedQtyState;
+
+function attachQtyInputListeners(){
+  var selectors = '.quantity-input__element, .scd-item__qty_input, input[data-quantity-input]';
+
+  document.querySelectorAll(selectors).forEach(function(input){
+    if (input.dataset.qtyListener) return;
+    input.dataset.qtyListener = '1';
+
+    ['input', 'change', 'blur'].forEach(function(ev){
+      input.addEventListener(ev, function(){
+        validateAndHighlightQty(input);
+        updateQtyButtonsState(input);
+        syncOtherQtyInputs(input);
       });
-      input.addEventListener('keypress', function(e){
-        if(e.key === 'Enter'){
-          validateAndHighlightQty(input);
-          updateQtyButtonsState(input);
-          syncOtherQtyInputs(input);
-        }
-      });
-      validateAndHighlightQty(input);
-      updateQtyButtonsState(input);
-      syncOtherQtyInputs(input);
     });
-  }
+
+    input.addEventListener('keypress', function(e){
+      if (e.key === 'Enter') {
+        validateAndHighlightQty(input);
+        updateQtyButtonsState(input);
+        syncOtherQtyInputs(input);
+      }
+    });
+
+    validateAndHighlightQty(input);
+    updateQtyButtonsState(input);
+    syncOtherQtyInputs(input);
+  });
+}
 
   // Nu validăm logică pentru cart/drawer (lăsăm tema să o gestioneze separat!)
   var qtyBtnListenerAdded = false;
