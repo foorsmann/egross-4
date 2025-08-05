@@ -1,6 +1,26 @@
 /* Stiluri izolate pentru componenta de quick add din colecție */
 /* collection-quick-add.css - Autor: Saga Media / Egross */
 
+/* Previne highlight-ul pe cardurile de produs */
+.sf__pcard, .sf__pcard *,
+.product-card, .product-card * {
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  user-select: none !important;
+}
+
+/* Permite selectarea doar în inputuri și textarea */
+.sf__pcard input,
+.sf__pcard textarea,
+.product-card input,
+.product-card textarea {
+  -webkit-user-select: auto !important;
+  -moz-user-select: auto !important;
+  -ms-user-select: auto !important;
+  user-select: auto !important;
+}
+
 .sf__pcard-quick-add-col {
   width: 100%;
 }
@@ -28,14 +48,6 @@ input.collection-qty-element:focus {
 .collection-product-form.adding .atc-spinner { display: flex; }
 .collection-product-form.adding .atc-text { visibility: hidden; }
 .collection-product-form.adding .add-to-cart { pointer-events: none; }
-
-/* prevent text highlighting on quick-add buttons */
-.sf__pcard-quick-add-col .collection-add-to-cart,
-.sf__pcard-quick-add-col .collection-double-qty-btn,
-.sf__pcard-quick-add-col .collection-qty-button,
-.sf__pcard-quick-add-col .sf__btn {
-  user-select: none;
-}
 
 /* layout tweaks for quantity controls inside quick-add cards */
 .collection-qty-group {
