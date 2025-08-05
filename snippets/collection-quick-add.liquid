@@ -32,7 +32,7 @@
           <div class="collection-form__actions" data-collection-cart-actions>
             <div class="collection-qty-wrapper form__input-wrapper form__input-wrapper--select w-full" data-collection-quantity-input-wrapper>
               <div class="collection-qty-group flex gap-2 w-full">
-                <collection-quantity-input class="collection-quantity-input h-[46px] flex border border-color-border rounded flex-auto" data-collection-product-id="{{ product.id }}">
+                <collection-quantity-input class="collection-quantity-input h-[46px] flex border border-color-border rounded flex-1" data-collection-product-id="{{ product.id }}">
                   <button class="collection-qty-button flex items-center justify-center h-[46px] w-[46px]" type="button" aria-label="{{ 'products.product.decrease_quantity' | t: title: product.title }}" data-collection-quantity-selector="decrease" data-collection-product-id="{{ product.id }}" name="minus" disabled>
                     <svg class="w-[12px] h-[12px]" fill="currentColor" stroke="currentColor" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><path d="M376 232H8c-4.42 0-8 3.58-8 8v32c0 4.42 3.58 8 8 8h368c4.42 0 8-3.58 8-8v-32c0-4.42-3.58-8-8-8z"/></svg>
                   </button>
@@ -42,7 +42,7 @@
                   </button>
                 </collection-quantity-input>
                 {%- if min_qty > 0 and max_qty > 0 or request.design_mode -%}
-                  <button type="button" class="collection-double-qty-btn double-qty-btn sf__btn sf__btn-secondary flex-auto max-w-[160px]" aria-label="{{ double_label }}" data-collection-double-qty data-collection-label-template="{{ label_template }}" data-collection-original-min-qty="{{ min_qty }}">{{ double_label }}</button>
+                  <button type="button" class="collection-double-qty-btn double-qty-btn sf__btn sf__btn-secondary flex-1 max-w-[160px]" aria-label="{{ double_label }}" data-collection-double-qty data-collection-label-template="{{ label_template }}" data-collection-original-min-qty="{{ min_qty }}">{{ double_label }}</button>
                 {%- endif -%}
               </div>
             </div>
