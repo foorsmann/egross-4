@@ -293,10 +293,19 @@
   function watchQtyGroupLayout(){
     updateQtyGroupLayout();
     requestAnimationFrame(updateQtyGroupLayout);
+    if(document.fonts && document.fonts.ready){
+      document.fonts.ready.then(function(){
+        updateQtyGroupLayout();
+        requestAnimationFrame(updateQtyGroupLayout);
+      });
+    }
     if(qtyLayoutListenerBound) return;
     qtyLayoutListenerBound = true;
     window.addEventListener('resize', updateQtyGroupLayout);
-    window.addEventListener('load', updateQtyGroupLayout);
+    window.addEventListener('load', function(){
+      updateQtyGroupLayout();
+      requestAnimationFrame(updateQtyGroupLayout);
+    });
   }
   function initAll(){
     applyMinQty();
