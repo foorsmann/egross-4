@@ -7028,7 +7028,8 @@ class Cart {
     _defineProperty(this, "changeItemQty", async lineItem => {
       const {
         not_enough_item_message,
-        sold_out_items_message
+        sold_out_items_message,
+        cartLimit
       } = cart_ConceptSGMStrings;
 
       try {
@@ -7036,6 +7037,7 @@ class Cart {
           id: key,
           quantity
         } = lineItem;
+        const prevItem = this.getCartItemByKey(key);
         this.loading.start();
         const newCart = await this.changeCart(lineItem);
         this.cart = newCart;
@@ -7063,10 +7065,12 @@ class Cart {
 
             if (lineItems.length === 1) {
               const lineItemNode = this.getLineItemNode(lineItem);
+              const reachedLimit = prevItem?.quantity === newItem.quantity;
+              const message = reachedLimit ? cartLimit || 'Ai atins limita maximă disponibilă pentru acest produs.' : not_enough_item_message.replace('__inventory_quantity__', newItem.quantity);
               cart_ConceptSGMTheme.Notification.show({
                 target: lineItemNode,
                 type: 'warning',
-                message: not_enough_item_message.replace('__inventory_quantity__', newItem.quantity)
+                message
               });
             }
           }
