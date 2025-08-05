@@ -292,9 +292,11 @@
   var qtyLayoutListenerBound = false;
   function watchQtyGroupLayout(){
     updateQtyGroupLayout();
+    requestAnimationFrame(updateQtyGroupLayout);
     if(qtyLayoutListenerBound) return;
     qtyLayoutListenerBound = true;
     window.addEventListener('resize', updateQtyGroupLayout);
+    window.addEventListener('load', updateQtyGroupLayout);
   }
   function initAll(){
     applyMinQty();
