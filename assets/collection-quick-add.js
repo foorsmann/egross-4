@@ -306,19 +306,6 @@
     window.addEventListener('shopify:section:load', initAll);
     window.addEventListener('shopify:cart:updated', initAll);
     window.addEventListener('shopify:product:updated', initAll);
-    if(!customElements.get('collection-pcard-error')){
-      customElements.define('collection-pcard-error', class extends HTMLElement{
-        constructor(){
-          super();
-          this.error = null;
-        }
-        connectedCallback(){
-          this.error = new (window.CartError || window.StickyATCError)(this);
-        }
-        show(msg){ this.error?.show(msg); }
-        hide(){ this.error?.hide(); }
-      });
-    }
     class CollectionProductForm extends HTMLElement{
       constructor(){
         super();
@@ -326,7 +313,8 @@
         this.submitButton = this.querySelector('.collection-add-to-cart');
         this.idInput = this.form ? this.form.querySelector('[name="id"]') : null;
         if(this.idInput){ this.idInput.disabled = false; }
-        this.errorWrapper = this.closest('.sf__pcard')?.querySelector('collection-pcard-error');
+        this.errorWrapper = this.closest('.sf__pcard')?.querySelector('sticky-atc-error');
+        this.error = this.errorWrapper && window.StickyATCError ? new window.StickyATCError(this.errorWrapper) : null;
         this.addEventListener('submit', this.onSubmit.bind(this));
       }
     toggleSpinner(show){
@@ -335,7 +323,7 @@
     async onSubmit(e){
         e.preventDefault();
         this.toggleSpinner(true);
-        this.errorWrapper?.hide();
+        this.error?.hide();
       const formData = new FormData(this.form);
       const variantId = parseInt(formData.get('id'),10);
       const qtyInput = this.form.querySelector('input[name="quantity"]');
@@ -349,7 +337,7 @@
       const available = Math.max(maxQty - cartQty,0);
       let resetQty = false;
         if(available <= 0){
-          this.errorWrapper?.show(window.ConceptSGMStrings.cartLimit || 'Cantitatea maxima pentru aceasta varianta este deja in cos.');
+          this.error?.show(window.ConceptSGMStrings.cartLimit || 'Cantitatea maxima pentru aceasta varianta este deja in cos.');
           this.toggleSpinner(false);
           return;
         }
@@ -381,7 +369,7 @@
           .then(({ statusCode, body }) => {
             if (statusCode >= 400 || body.status) {
               let msg = body.description || body.message || body.errors || window.ConceptSGMStrings.cartError;
-              this.errorWrapper?.show(msg);
+              this.error?.show(msg);
               return;
             }
             window.ConceptSGMEvents?.emit('COLLECTION_ITEM_ADDED', body);
@@ -389,7 +377,7 @@
             if(resetQty && qtyInput){ applyCappedQtyState(qtyInput); }
           })
           .catch(() => {
-            this.errorWrapper?.show(window.ConceptSGMStrings.cartError);
+            this.error?.show(window.ConceptSGMStrings.cartError);
           })
           .finally(()=>{ this.toggleSpinner(false); });
       }
