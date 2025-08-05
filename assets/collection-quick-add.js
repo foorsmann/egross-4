@@ -313,6 +313,8 @@
       this.submitButton = this.querySelector('.collection-add-to-cart');
       this.idInput = this.form ? this.form.querySelector('[name="id"]') : null;
       if(this.idInput){ this.idInput.disabled = false; }
+      const card = this.closest('.sf__pcard');
+      this.error = new CollectionPCardError(card ? card.querySelector('.collection-pcard-error') : null);
       this.addEventListener('submit', this.onSubmit.bind(this));
     }
     toggleSpinner(show){
@@ -323,6 +325,11 @@
       this.toggleSpinner(true);
       const formData = new FormData(this.form);
       const variantId = parseInt(formData.get('id'),10);
+      if(!variantId){
+        this.error.show(window.ConceptSGMStrings?.noVariant || 'Selecteaza o varianta');
+        this.toggleSpinner(false);
+        return;
+      }
       const qtyInput = this.form.querySelector('input[name="quantity"]');
       const requestedQty = parseInt(formData.get('quantity')) || 1;
       const maxQty = parseInt(qtyInput?.max) || Infinity;
@@ -334,13 +341,14 @@
       const available = Math.max(maxQty - cartQty,0);
       let resetQty = false;
       if(available <= 0){
-        window.ConceptSGMTheme?.Notification?.show({type:'warning', message: window.ConceptSGMStrings?.cartLimit});
+        this.error.show(window.ConceptSGMStrings?.cartLimit || 'Stoc indisponibil');
         this.toggleSpinner(false);
         return;
       }
       if(requestedQty > available){
         formData.set('quantity', available);
         resetQty = true;
+        this.error.show(window.ConceptSGMStrings?.cartLimit || 'Stoc insuficient');
       }
       const config = {
         method:'POST',
@@ -354,8 +362,9 @@
           window.ConceptSGMEvents?.emit('COLLECTION_ITEM_ADDED', data);
           window.Shopify?.onItemAdded?.(data);
           if(resetQty && qtyInput){ applyCappedQtyState(qtyInput); }
+          this.error.hide();
         })
-        .catch(()=>{})
+        .catch(()=>{ this.error.show(window.ConceptSGMStrings?.cartError || 'Eroare la adaugare'); })
         .finally(()=>{ this.toggleSpinner(false); });
     }
   }
