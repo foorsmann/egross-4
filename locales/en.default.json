@@ -70,10 +70,12 @@
     "payment": {
       "options": "Payment options"
     },
-    "notifications": {
-      "item_added": "Product added to cart successfully",
-      "required_field": "Please fill all the required fields(*) before Add To Cart!"
-    },
+      "notifications": {
+        "item_added": "Product added to cart successfully",
+        "only_available_added": "Only {{ quantity }} was added to the cart due to availability",
+        "cart_limit": "You have reached the maximum available for this product.",
+        "required_field": "Please fill all the required fields(*) before Add To Cart!"
+      },
     "foxkit": {
       "add": "Add"
     },

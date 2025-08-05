@@ -103,7 +103,7 @@ if (!customElements.get("product-form")) {
           target: this?.domNodes?.errorWrapper,
           method: "appendChild",
           type: "warning",
-          message: window.ConceptSGMStrings.cartLimit || 'Cantitatea maxima pentru aceasta varianta este deja in cos.'
+          message: window.ConceptSGMStrings.cartLimit || 'Ai atins limita maxima disponibila pentru acest produs.'
         });
       }
 
@@ -173,6 +173,10 @@ if (!customElements.get("product-form")) {
             }
 
             window.ConceptSGMEvents.emit(`ON_ITEM_ADDED`, body);
+            if (resetQty) {
+              body.requestedQty = requestedQty;
+              body.addedQty = availableToAdd;
+            }
             window.Shopify.onItemAdded(body);
             if (resetQty && qtyInput) {
               if (typeof applyCappedQtyState === 'function') {

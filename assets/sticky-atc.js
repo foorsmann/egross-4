@@ -1354,7 +1354,7 @@ if (!customElements.get('sticky-atc')) {
 
       const availableToAdd = Math.max(maxQty - cartQty, 0);
       if (availableToAdd <= 0) {
-        this.stickyError?.show(window.ConceptSGMStrings.cartLimit || 'Cantitatea maxima pentru aceasta varianta este deja in cos.');
+        this.stickyError?.show(window.ConceptSGMStrings.cartLimit || 'Ai atins limita maxima disponibila pentru acest produs.');
         return;
       }
       if (requestedQty > availableToAdd) {
@@ -1413,6 +1413,10 @@ if (!customElements.get('sticky-atc')) {
               this.stickyError?.show(msg);
             } else {
               window.ConceptSGMEvents.emit('ON_ITEM_ADDED', body);
+              if (resetQty) {
+                body.requestedQty = requestedQty;
+                body.addedQty = availableToAdd;
+              }
               window.Shopify.onItemAdded(body);
               if (resetQty && qtyInput) {
                 if (typeof applyCappedQtyState === 'function') {

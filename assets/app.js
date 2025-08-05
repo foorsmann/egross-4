@@ -577,11 +577,21 @@ Shopify.onItemAdded = async function (line_item) {
       if (open_drawer) {
         await Cart.renderNewCart();
         Cart.openCartDrawer();
+        let type = 'success';
+        let message = ConceptSGMStrings.itemAdded;
+        if (line_item?.requestedQty !== undefined && line_item?.addedQty !== undefined) {
+          if (line_item.addedQty === 0) {
+            type = 'warning';
+            message = ConceptSGMStrings.cartLimit;
+          } else if (line_item.requestedQty > line_item.addedQty) {
+            message = ConceptSGMStrings.onlyAvailableAdded.replace('__max_qty__', line_item.addedQty);
+          }
+        }
         ConceptSGMTheme.Notification.show({
           target: Cart.domNodes?.cartDrawerItems,
           method: 'prepend',
-          type: 'success',
-          message: ConceptSGMStrings.itemAdded,
+          type,
+          message,
           delay: 400
         });
       }
@@ -7028,7 +7038,8 @@ class Cart {
     _defineProperty(this, "changeItemQty", async lineItem => {
       const {
         not_enough_item_message,
-        sold_out_items_message
+        sold_out_items_message,
+        cartLimit
       } = cart_ConceptSGMStrings;
 
       try {
@@ -7036,6 +7047,13 @@ class Cart {
           id: key,
           quantity
         } = lineItem;
+        const prevItem = this.cart.items.find(_ref2 => {
+          let {
+            key: _key
+          } = _ref2;
+          return _key === key;
+        });
+        const prevQty = prevItem?.quantity || 0;
         this.loading.start();
         const newCart = await this.changeCart(lineItem);
         this.cart = newCart;
@@ -7043,31 +7061,40 @@ class Cart {
         this.loading.finish(() => {
           this.renderNewCart(cartHTML);
           window.Shopify.onCartUpdate(newCart, false);
-          const newItem = newCart.items.find(_ref2 => {
+          const newItem = newCart.items.find(_ref3 => {
             let {
               key: _key
-            } = _ref2;
+            } = _ref3;
             return _key === key;
           });
 
           if (quantity > newItem?.quantity) {
-            const {
-              product_id
-            } = newItem;
-            const lineItems = newCart.items.filter(_ref3 => {
-              let {
-                product_id: pId
-              } = _ref3;
-              return pId === product_id;
-            });
+            const lineItemNode = this.getLineItemNode(lineItem);
 
-            if (lineItems.length === 1) {
-              const lineItemNode = this.getLineItemNode(lineItem);
+            if (newItem.quantity === prevQty) {
               cart_ConceptSGMTheme.Notification.show({
                 target: lineItemNode,
                 type: 'warning',
-                message: not_enough_item_message.replace('__inventory_quantity__', newItem.quantity)
+                message: cartLimit
               });
+            } else {
+              const {
+                product_id
+              } = newItem;
+              const lineItems = newCart.items.filter(_ref4 => {
+                let {
+                  product_id: pId
+                } = _ref4;
+                return pId === product_id;
+              });
+
+              if (lineItems.length === 1) {
+                cart_ConceptSGMTheme.Notification.show({
+                  target: lineItemNode,
+                  type: 'warning',
+                  message: not_enough_item_message.replace('__inventory_quantity__', newItem.quantity)
+                });
+              }
             }
           }
         });
