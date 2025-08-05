@@ -63,6 +63,7 @@ input.collection-qty-element:focus {
   flex: 2 2 auto;
   width: auto;
   max-width: none;
+  height: 46px;
 }
 
 .collection-qty-group > .collection-quantity-input:only-child,
@@ -79,6 +80,5 @@ input.collection-qty-element:focus {
 .collection-qty-group.is-wrapped .collection-double-qty-btn {
   flex: 1 1 100%;
   width: 100%;
-  height: 46px;
 }
 

@@ -284,15 +284,48 @@
       var input = group.querySelector('.collection-quantity-input');
       var btn = group.querySelector('.collection-double-qty-btn');
       if(!input || !btn) return;
-      group.classList.toggle('is-wrapped', btn.offsetTop > input.offsetTop);
+      var wrapped;
+      if(input.offsetParent === btn.offsetParent){
+        wrapped = btn.offsetTop > input.offsetTop;
+      }else{
+        var inputTop = input.getBoundingClientRect().top;
+        var btnTop = btn.getBoundingClientRect().top;
+        wrapped = btnTop - inputTop > 1;
+      }
+      group.classList.toggle('is-wrapped', wrapped);
     });
   }
   var qtyLayoutListenerBound = false;
+  var qtyGroupObserver;
+  var qtyGroupMutationObserver;
   function watchQtyGroupLayout(){
+    if(typeof ResizeObserver !== 'undefined'){
+      if(!qtyGroupObserver){ qtyGroupObserver = new ResizeObserver(updateQtyGroupLayout); }
+    }
+    if(!qtyGroupMutationObserver){
+      qtyGroupMutationObserver = new MutationObserver(updateQtyGroupLayout);
+    }
+    document.querySelectorAll('.collection-qty-group').forEach(function(group){
+      if(qtyGroupObserver){ qtyGroupObserver.observe(group); }
+      qtyGroupMutationObserver.observe(group, {childList:true, subtree:true, attributes:true});
+    });
     updateQtyGroupLayout();
+    requestAnimationFrame(updateQtyGroupLayout);
+    setTimeout(updateQtyGroupLayout,50);
+    if(document.fonts && document.fonts.ready){
+      document.fonts.ready.then(function(){
+        updateQtyGroupLayout();
+        requestAnimationFrame(updateQtyGroupLayout);
+      });
+    }
     if(qtyLayoutListenerBound) return;
     qtyLayoutListenerBound = true;
     window.addEventListener('resize', updateQtyGroupLayout);
+    window.addEventListener('load', function(){
+      updateQtyGroupLayout();
+      requestAnimationFrame(updateQtyGroupLayout);
+      setTimeout(updateQtyGroupLayout,0);
+    });
   }
   function initAll(){
     applyMinQty();
@@ -302,7 +335,11 @@
     attachNoHighlightListeners();
     watchQtyGroupLayout();
   }
-  document.addEventListener('DOMContentLoaded', initAll);
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', initAll);
+  }else{
+    initAll();
+  }
   window.addEventListener('shopify:section:load', initAll);
   window.addEventListener('shopify:cart:updated', initAll);
   window.addEventListener('shopify:product:updated', initAll);
