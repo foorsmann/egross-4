@@ -55,12 +55,12 @@ input.collection-qty-element:focus {
 }
 
 .collection-qty-group .collection-quantity-input {
-  flex: 0 1 auto;
+  flex: 1 1 auto;
   width: auto;
 }
 
 .collection-qty-group .collection-double-qty-btn {
-  flex: 1 1 auto;
+  flex: 2 2 auto;
   width: auto;
   max-width: none;
 }
