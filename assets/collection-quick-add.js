@@ -141,7 +141,11 @@
     });
   }
   function adjustQuantity(input, delta, baseVal){
-    var step = parseInt(input.getAttribute('data-collection-min-qty'),10) || 1;
+    var stepAttr = input.getAttribute('data-collection-min-qty');
+    if(!stepAttr && input.dataset.prevMinQtyAttr){
+      stepAttr = input.dataset.prevMinQtyAttr;
+    }
+    var step = parseInt(stepAttr,10) || parseInt(input.step,10) || 1;
     var max = input.max ? parseInt(input.max,10) : Infinity;
     var minQty = step;
     var val = baseVal !== undefined ? parseInt(baseVal,10) : parseInt(input.value,10);
