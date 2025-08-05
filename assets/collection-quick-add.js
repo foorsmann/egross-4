@@ -284,7 +284,9 @@
       var input = group.querySelector('.collection-quantity-input');
       var btn = group.querySelector('.collection-double-qty-btn');
       if(!input || !btn) return;
-      group.classList.toggle('is-wrapped', btn.offsetTop > input.offsetTop);
+      var inputTop = input.getBoundingClientRect().top;
+      var btnTop = btn.getBoundingClientRect().top;
+      group.classList.toggle('is-wrapped', btnTop - inputTop > 1);
     });
   }
   var qtyLayoutListenerBound = false;
